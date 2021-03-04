@@ -118,7 +118,7 @@ server <- function(input, output, session) {
          row <- 1
        }
        a_priori <- a_priori[row,]
-       browser()
+     
        config <- HALT::make_config(combination_method = a_priori$method_code,
                                   A_threshold = a_priori$A,
                                   B_threshold = a_priori$B,
