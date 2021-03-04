@@ -99,7 +99,7 @@ server <- function(input, output, session) {
                                   min_prob =  as.numeric(input$min_prob), 
                                   tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
-     DT::datatable(config, options = list(lengthMenu = c(5, 30, 50), pageLength = 30))
+     DT::datatable(config, options = list(lengthMenu = c(5, 30, 50), pageLength = 30), selection = "single")
    }, width = "100%"
    )
    output$parameter_description <- renderTable({
