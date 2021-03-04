@@ -1,0 +1,13 @@
+parameter;label;description
+mode;Mode;"Select ""a priori"" for configuration, post-hoc for post-hoc prevalence calculation."
+device;Playback Device;"Select ""headphones"" or ""loudspeakers"" as the target playback device."
+parparticipants;Participants;Enter the minimum number of required participants with the target device who passed the screening test.
+base_rate;Baserate/Prevalence;Enter the estimated percentage of headphone users in your target population.
+scc;SCC;"Select ""yes"" if you want to use the ""Split Convince Compare"" method (SCC)."
+change_rate;Change Rate;Enter the estimated percentage of non-target playback device users who will switch to the target device after reguest.
+min_prob;Minimum Probability;Enter the probability that the required participants who passed the screening test used the target playback device.
+tolerance;Tolerance;A value of 0 searches for the screening procedures with the minimum sample size. If set to a value > 0 the function returns the screening procedures whose sample sizes exceed the minimum sample size by at most this value.
+lr_disc;Left-Right Discrimination;"Select ""EX"" if participants that have difficulties with left-right-discrimination (recommended) should be excluded immediately. Select ""SAVE"" if the obtained information should only be saved."
+mono_inter;Mono/Interchanged CH;"Select ""EX"" if participants with mono playback or interchanged stereo channels should be excluded immediately. Select ""SAVE"" if the obtained information should only be saved."
+screening;Screening Behavior;"Select ""EX"" if participants with a screening result that indicates the usage of the non-target playback device should be excluded immediately. Select ""SAVE"" if the screening result should only be saved."
+max_loops;Loop Threshold;Enter the maximum number of allowed incorrect responses for the loop task (playback level setting) after which the participants will be excluded.
