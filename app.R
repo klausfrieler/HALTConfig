@@ -51,11 +51,11 @@ ui <- fluidPage(
         
         textInput("tolerance", "Tolerance:", value = 0,  width = input_width),
         selectInput("lr_disc", "Left-Right Discrimination:",
-                    c("EX" = "ex", "SAVE" = "save"), selected = "ex"),
+                    c("EX" = TRUE, "SAVE" = FALSE), selected = "ex"),
         selectInput("mono_inter", "Mono/Interchanged CH:",
-                    c("EX" = "ex", "SAVE" = "save"), selected = "ex"),
+                    c("EX" = TRUE, "SAVE" = FALSE), selected = "ex"),
         selectInput("screening", "Screening Behavior:",
-                    c("EX" = "ex", "SAVE" = "save"), selected = "save"),
+                    c("EX" = TRUE, "SAVE" = FALSE), selected = "save"),
         textInput("max_loops", "Loop Threshold:", value = 2, width = input_width),
         
         width = 2
@@ -110,12 +110,29 @@ server <- function(input, output, session) {
    output$download_config <- downloadHandler(
      filename = "HALT_config.csv",
      content = function(file){
-       config <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
+       a_priori <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
                                     min_prob =  as.numeric(input$min_prob), 
-                                    tolerance = as.numeric(input$tolerance)) 
-       rows <- input$advanced_output_rows_selected
-        browser()
-        write.table(config[rows,], file, sep = ";", row.names = FALSE, quote = FALSE)
+                                    tolerance = as.numeric(input$tolerance))
+       row <- input$advanced_output_rows_selectedI[1]
+       if(length(row) == 0){
+         row <- 1
+       }
+       a_priori <- a_priori[row,]
+       browser()
+       config <- HALT::make_config(combination_method = a_priori$method_code,
+                                  A_threshold = a_priori$A,
+                                  B_threshold = a_priori$B,
+                                  C_threshold = a_priori$C,
+                                  baserate_hp = a_priori$true_hp_rate,
+                                  devices = input$device,
+                                  use_scc = as.logical(input$SCC),
+                                  loop_exclude = as.numeric(input$max_loops),
+                                  lr_img_exclude = as.logical(input$lr_disc),
+                                  lr_audio_exclude = as.logical(input$mono_inter),
+                                  devices_exclude = as.logical(input$screening)
+       )
+       attr(config, "class") <- "list"
+       write.table(as.data.frame(config), file, sep = ";", row.names = FALSE, quote = FALSE)
      }
    )   
 }
