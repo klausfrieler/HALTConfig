@@ -29,7 +29,7 @@ get_intro_text <- function(){
 input_width <- 300
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  tags$head(tags$style(HTML("#advanced_output:{background-color: #9ad6db}"))),
+  tags$head(tags$style(HTML("#selection_output:{background-color: #9ad6db};#config_output:{background-color: #9ad6db};"))),
   
    # Application title
    titlePanel("HALT Configurator & Calculator"),
@@ -67,9 +67,15 @@ ui <- fluidPage(
            p(htmlOutput("introduction")),
           ),
           tabPanel("Output", 
+                   h4("Description", style = "margin:20px"),
                    p(htmlOutput("basic_output")),
+                   h4("Configuration", style = "margin:30px"),
+                   div(
+                     tableOutput("config_output"),
+                     style = "background-color: #9ad6db;border: solid 1px;padding: 5px"),
                    downloadButton("download_config", "Download HALT config file", style = "margin: 20px"),
-                   DT::dataTableOutput("advanced_output")),
+                   h4("A Priori Estimation", style = "margin:20px"),
+                   div(DT::dataTableOutput("selection_output"))),
           tabPanel("Info", 
                    #p(htmlOutput("input_info"))
                    tableOutput("parameter_description")
@@ -79,29 +85,77 @@ ui <- fluidPage(
    )
 )
 
+rename_apriori_est <- function(a_priori){
+  names(a_priori) <- c("Method", "Code", "A", "B", "C", "HP Rate", "LS Rate", "HP Prev.", "LS Prev.", 
+                       "Utility", "Sample Size", "Expected Part.", "Min Quality %")
+  a_priori
+}
+make_config <- function(input, row){
+  a_priori <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
+                                 min_prob =  as.numeric(input$min_prob), 
+                                 tolerance = as.numeric(input$tolerance))
+  if(length(row) == 0){
+    row <- 1
+  }
+  a_priori <- a_priori[row,]
+  
+  config <- HALT::make_config(combination_method = a_priori$method_code,
+                              A_threshold = a_priori$A,
+                              B_threshold = a_priori$B,
+                              C_threshold = a_priori$C,
+                              baserate_hp = input$base_rate,
+                              devices = input$device,
+                              use_scc = as.logical(input$SCC),
+                              loop_exclude = as.numeric(input$max_loops),
+                              lr_img_exclude = as.logical(input$lr_disc),
+                              lr_audio_exclude = as.logical(input$mono_inter),
+                              devices_exclude = as.logical(input$screening)
+  ) 
+  attr(config, "class") <- "list"
+  config <- config %>% as.data.frame() 
+  names(config) <- c("Method Code", "A", "B", "C", "Base Rate", "SCC", "Max. Loops", "Visual Check", 
+                     "Aural Check", "Exclude by Device", "Device")
+  config
+}
+
 # Define server logic required to draw a plot
 server <- function(input, output, session) {
    message("*** STARTING APP***")
-
    output$introduction <- renderUI({
      get_intro_text()
    })
    output$basic_output <- renderUI({
-     config <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
+     selection <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
                                   min_prob =  as.numeric(input$min_prob), 
                                   tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
-     shiny::p(attr(config, "explanation"), style = "width:50%;background-color:#8bc99c;border: solid 1px;padding: 2px")
+     shiny::p(attr(selection, "explanation"), 
+              style = "width:50%;background-color:#e87287;border: solid 1px;padding: 2px")
    })
    
-   output$advanced_output <- DT::renderDataTable({
-     config <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
-                                  min_prob =  as.numeric(input$min_prob), 
-                                  tolerance = as.numeric(input$tolerance)) %>% 
+   output$selection_output <- DT::renderDataTable({
+     selection <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
+                                     min_prob =  as.numeric(input$min_prob), 
+                                     tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
-     DT::datatable(config, options = list(lengthMenu = c(5, 30, 50), pageLength = 30), selection = "single")
+     DT::datatable(selection %>% rename_apriori_est(), options = list(lengthMenu = c(5, 30, 50), pageLength = 30), selection = "single")
    }, width = "100%"
    )
+   # output$config_output <- DT::renderDataTable({
+   #   #print(input$selection_output_rows_selected)
+   #   config <- make_config(input, input$selection_output_rows_selected)
+   #   #print(config)
+   #   tabl(config, options = list(lengthMenu = c(5, 30, 50), pageLength = 30), selection = "single")
+   #   
+   #   DT::datatable(config, options = list(lengthMenu = c(5, 30, 50), pageLength = 30), selection = "single")
+   # }, width = "100%"
+   # )
+
+   output$config_output <- renderTable({
+      make_config(input, input$selection_output_rows_selected) %>% mutate(A = as.integer(A))
+   }, width = "100%"
+   )
+   
    output$parameter_description <- renderTable({
      parameter_description %>% select(-parameter) %>% rename("Parameter" = label, "Description" = description)
    })
@@ -110,28 +164,7 @@ server <- function(input, output, session) {
    output$download_config <- downloadHandler(
      filename = "HALT_config.csv",
      content = function(file){
-       a_priori <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
-                                    min_prob =  as.numeric(input$min_prob), 
-                                    tolerance = as.numeric(input$tolerance))
-       row <- input$advanced_output_rows_selectedI[1]
-       if(length(row) == 0){
-         row <- 1
-       }
-       a_priori <- a_priori[row,]
-     
-       config <- HALT::make_config(combination_method = a_priori$method_code,
-                                  A_threshold = a_priori$A,
-                                  B_threshold = a_priori$B,
-                                  C_threshold = a_priori$C,
-                                  baserate_hp = a_priori$true_hp_rate,
-                                  devices = input$device,
-                                  use_scc = as.logical(input$SCC),
-                                  loop_exclude = as.numeric(input$max_loops),
-                                  lr_img_exclude = as.logical(input$lr_disc),
-                                  lr_audio_exclude = as.logical(input$mono_inter),
-                                  devices_exclude = as.logical(input$screening)
-       )
-       attr(config, "class") <- "list"
+       config <- make_config(input, input$selection_output_rows_selected)
        write.table(as.data.frame(config), file, sep = ";", row.names = FALSE, quote = FALSE)
      }
    )   
