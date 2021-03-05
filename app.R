@@ -29,7 +29,7 @@ get_intro_text <- function(){
 input_width <- 300
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  tags$head(tags$style(HTML("#selection_output:{background-color: #9ad6db};#config_output:{background-color: #9ad6db};"))),
+  tags$head(tags$style(".butt{background-color:#add8e6;} .butt{color: #337ab7;}")),
   
    # Application title
    titlePanel("HALT Configurator & Calculator"),
@@ -73,7 +73,8 @@ ui <- fluidPage(
                    div(
                      tableOutput("config_output"),
                      style = "background-color: #9ad6db;border: solid 1px;padding: 5px"),
-                   downloadButton("download_config", "Download HALT config file", style = "margin: 20px"),
+                   div(downloadButton("download_config", "Download HALT config file", 
+                                      style = "margin:20px;font-size:large;background-color:#ede2a4")),
                    h4("A Priori Estimation", style = "margin:20px"),
                    div(DT::dataTableOutput("selection_output"))),
           tabPanel("Info", 
@@ -130,7 +131,7 @@ server <- function(input, output, session) {
                                   tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
      shiny::p(attr(selection, "explanation"), 
-              style = "width:50%;background-color:#e87287;border: solid 1px;padding: 2px")
+              style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 2px")
    })
    
    output$selection_output <- DT::renderDataTable({
