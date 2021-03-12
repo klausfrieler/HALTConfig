@@ -92,7 +92,9 @@ rename_apriori_est <- function(a_priori){
   a_priori
 }
 make_config <- function(input, row){
-  a_priori <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
+  a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
+                                 device = input$device, 
+                                 min_number = as.numeric(input$participants), 
                                  min_prob =  as.numeric(input$min_prob), 
                                  tolerance = as.numeric(input$tolerance))
   if(length(row) == 0){
@@ -137,7 +139,9 @@ server <- function(input, output, session) {
    })
    
    output$selection_output <- DT::renderDataTable({
-     selection <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
+     selection <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
+                                     device = input$device, 
+                                     min_number = as.numeric(input$participants), 
                                      min_prob =  as.numeric(input$min_prob), 
                                      tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
