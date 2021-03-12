@@ -43,7 +43,7 @@ ui <- fluidPage(
                     c("Headphone" = "HP", "Loudspeaker" = "LS")),
         #checkboxInput("mode", "Post Hoc", TRUE),
         textInput("participants", "Participants:", value = 300, width = input_width),
-        textInput("base_rate", "Base Rate / Prevalence:", value = round(211.0/1194.0, 2), width = input_width),
+        textInput("baserate_hp", "Base Rate / Prevalence:", value = round(211.0/1194.0, 2), width = input_width),
         
         checkboxInput("SCC", "SCC", FALSE),
         textInput("change_rate", "Change Rate:", value = 0, width = input_width),
@@ -104,7 +104,7 @@ make_config <- function(input, row){
                               A_threshold = a_priori$A,
                               B_threshold = a_priori$B,
                               C_threshold = a_priori$C,
-                              baserate_hp = input$base_rate,
+                              baserate_hp = input$baserate_hp,
                               devices = input$device,
                               use_scc = as.logical(input$SCC),
                               loop_exclude = as.numeric(input$max_loops),
@@ -126,9 +126,11 @@ server <- function(input, output, session) {
      get_intro_text()
    })
    output$basic_output <- renderUI({
-     selection <- HALT::a_priori_est(min_number = as.numeric(input$participants), 
-                                  min_prob =  as.numeric(input$min_prob), 
-                                  tolerance = as.numeric(input$tolerance)) %>% 
+     selection <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
+                                     device = input$device, 
+                                     min_number = as.numeric(input$participants), 
+                                     min_prob =  as.numeric(input$min_prob), 
+                                     tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
      shiny::p(attr(selection, "explanation"), 
               style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 2px")
