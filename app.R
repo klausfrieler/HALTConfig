@@ -39,20 +39,20 @@ ui <- fluidPage(
       sidebarPanel(
         tags$style("#mode:{background-color: #72b573}"),
         selectInput("mode", "Mode:", c("A priori" = "config", "Post-hoc" = "post_hoc")), 
-        selectInput("device", "Playback Device:",
+        selectInput("device", "Target Device:",
                     c("Headphone" = "HP", "Loudspeaker" = "LS")),
         #checkboxInput("mode", "Post Hoc", TRUE),
-        textInput("participants", "Participants:", value = 300, width = input_width),
-        textInput("baserate_hp", "Base Rate / Prevalence:", value = round(211.0/1194.0, 2), width = input_width),
+        textInput("participants", "Participants with target device:", value = 300, width = input_width),
+        textInput("baserate_hp", "Base Rate / Prevalence for Headphones:", value = round(211.0/1194.0, 2), width = input_width),
         
-        checkboxInput("SCC", "SCC", FALSE),
-        textInput("change_rate", "Change Rate:", value = 0, width = input_width),
-        textInput("min_prob", "Minimum Probability:", value = .80, width = input_width),
+        #checkboxInput("SCC", "SCC", FALSE),
+        #textInput("change_rate", "Change Rate:", value = 0, width = input_width),
+        textInput("min_prob", "Minimum Probability  for participants with target device:", value = .80, width = input_width),
         
         textInput("tolerance", "Tolerance:", value = 0,  width = input_width),
-        selectInput("lr_disc", "Left-Right Discrimination:",
+        selectInput("lr_disc", "Left-Right Discrimination Behaviour:",
                     c("EX" = TRUE, "SAVE" = FALSE), selected = "ex"),
-        selectInput("mono_inter", "Mono/Interchanged CH:",
+        selectInput("mono_inter", "Mono/Interchanged CH Behaviour:",
                     c("EX" = TRUE, "SAVE" = FALSE), selected = "ex"),
         selectInput("screening", "Screening Behavior:",
                     c("EX" = TRUE, "SAVE" = FALSE), selected = "save"),
@@ -67,16 +67,17 @@ ui <- fluidPage(
            p(htmlOutput("introduction")),
           ),
           tabPanel("Output", 
-                   h4("Description", style = "margin:20px"),
+                   h4("A Priori Estimation", style = "margin-left:0px;margin-top:30px"),
+                   div(DT::dataTableOutput("selection_output")),
+                   h4("Description", style = "margin-left:0px;margin-top:30px"),
                    p(htmlOutput("basic_output")),
-                   h4("Configuration", style = "margin:30px"),
+                   h4("Configuration", style = "margin-left:0px;margin-top:30px"),
                    div(
                      tableOutput("config_output"),
-                     style = "background-color: #9ad6db;border: solid 1px;padding: 5px"),
+                     style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;"),
                    div(downloadButton("download_config", "Download HALT config file", 
                                       style = "margin:20px;font-size:large;background-color:#ede2a4")),
-                   h4("A Priori Estimation", style = "margin:20px"),
-                   div(DT::dataTableOutput("selection_output"))),
+                   ),
           tabPanel("Info", 
                    #p(htmlOutput("input_info"))
                    tableOutput("parameter_description")
@@ -108,7 +109,8 @@ make_config <- function(input, row){
                               C_threshold = a_priori$C,
                               baserate_hp = input$baserate_hp,
                               devices = input$device,
-                              use_scc = as.logical(input$SCC),
+                              #use_scc = as.logical(input$SCC),
+                              use_scc = FALSE,
                               loop_exclude = as.numeric(input$max_loops),
                               lr_img_exclude = as.logical(input$lr_disc),
                               lr_audio_exclude = as.logical(input$mono_inter),
@@ -116,8 +118,8 @@ make_config <- function(input, row){
   ) 
   attr(config, "class") <- "list"
   config <- config %>% as.data.frame() 
-  names(config) <- c("Method Code", "A", "B", "C", "Base Rate", "SCC", "Max. Loops", "Visual Check", 
-                     "Aural Check", "Exclude by Device", "Device")
+  names(config) <- c("Method Code", "A", "B", "C", "Base Rate", "SCC", "Max. Loops", "LR Exclude (img)", 
+                     "LR Exclude (audio)", "Exclude by Device", "Device")
   config
 }
 
@@ -135,7 +137,7 @@ server <- function(input, output, session) {
                                      tolerance = as.numeric(input$tolerance)) %>% 
        mutate_if(is.numeric, round, 2)
      shiny::p(attr(selection, "explanation"), 
-              style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 2px")
+              style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;")
    })
    
    output$selection_output <- DT::renderDataTable({
@@ -159,7 +161,7 @@ server <- function(input, output, session) {
    # )
 
    output$config_output <- renderTable({
-      make_config(input, input$selection_output_rows_selected) %>% mutate(A = as.integer(A))
+      make_config(input, input$selection_output_rows_selected) %>% mutate(A = as.integer(A), B = as.integer(B), C = as.integer(C))
    }, width = "100%"
    )
    
