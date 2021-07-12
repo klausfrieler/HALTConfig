@@ -20,10 +20,12 @@ parameter_description <- read.csv("parameter_description.csv", sep = ";", string
   
 get_intro_text <- function(){
   div(h4("Welcome to the Headphone and Loudspeaker Test (HALT) Configurator & Calculator"), 
-         p("This app allows you to create a configuration files according to your needs, and also to estimate",
-           "prevalence values post-hoc"),
-      p("Have fun!"),
-      p("Your HALT team"), style = "width:50%:text-align:justify")
+         p("This tool determines an optimal screening test combination for headphones and loudspeakers.",
+         "It is to be used a priori (i.e., in advance of data collection).",
+         "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use."),
+         p("In the future, we also intend to implement a tool for post-hoc calculations."),
+      p("Thank you for your interest."),
+      p("Kilian Sander, Yves Wycisk"), style = "width:60%;text-align:justify")
 }
 
 input_width <- 300
