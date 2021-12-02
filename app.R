@@ -43,6 +43,8 @@ ui <- fluidPage(
         selectInput("mode", "Mode:", c("A priori" = "config", "Post-hoc" = "post_hoc")), 
         selectInput("device", "Target Device:",
                     c("Headphone" = "HP", "Loudspeaker" = "LS")),
+        selectInput("volume_level", "Volume Level:",
+                    c("-8.4 LUFS", "-20.0 LUFS")),
         #checkboxInput("mode", "Post Hoc", TRUE),
         textInput("participants", "Participants with target device:", value = 300, width = input_width),
         textInput("baserate_hp", "Base Rate / Prevalence for Headphones:", value = round(211.0/1194.0, 2), width = input_width),
@@ -104,7 +106,6 @@ make_config <- function(input, row){
     row <- 1
   }
   a_priori <- a_priori[row,]
-  
   config <- HALT::make_config(combination_method = a_priori$method_code,
                               A_threshold = a_priori$A,
                               B_threshold = a_priori$B,
@@ -116,12 +117,12 @@ make_config <- function(input, row){
                               loop_exclude = as.numeric(input$max_loops),
                               lr_img_exclude = as.logical(input$lr_disc),
                               lr_audio_exclude = as.logical(input$mono_inter),
-                              devices_exclude = as.logical(input$screening)
-  ) 
+                              devices_exclude = as.logical(input$screening), 
+                              volume_level = input$volume_level) 
   attr(config, "class") <- "list"
   config <- config %>% as.data.frame() 
   names(config) <- c("Method Code", "A", "B", "C", "Base Rate", "SCC", "Max. Loops", "LR Exclude (img)", 
-                     "LR Exclude (audio)", "Exclude by Device", "Device")
+                     "LR Exclude (audio)", "Exclude by Device", "Volume Level", "Device")
   config
 }
 
