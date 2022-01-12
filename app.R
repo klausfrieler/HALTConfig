@@ -44,8 +44,6 @@ ui <- fluidPage(
         selectInput("mode", "Mode:", c("A priori" = "config", "Post-hoc" = "post_hoc")), 
         selectInput("device", "Target Device:",
                     c("Headphone" = "HP", "Loudspeaker" = "LS")),
-        selectInput("volume_level", "Volume Level:",
-                    c("-8.4 LUFS", "-20.0 LUFS")),
         #checkboxInput("mode", "Post Hoc", TRUE),
         textInput("participants", "Participants with target device:", value = 300, width = input_width),
         textInput("baserate_hp", "Base Rate / Prevalence for Headphones:", value = round(211.0/1194.0, 2), width = input_width),
@@ -62,6 +60,8 @@ ui <- fluidPage(
         selectInput("screening", "Screening Behavior:",
                     c("EX" = TRUE, "SAVE" = FALSE), selected = "save"),
         textInput("max_loops", "Loop Threshold:", value = 2, width = input_width),
+        selectInput("volume_level", "Volume Level:",
+                    c("-8.4 LUFS", "-20.0 LUFS")),
         
         width = 2
       ),      

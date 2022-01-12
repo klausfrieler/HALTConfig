@@ -1,7 +1,6 @@
 parameter;label;description
-mode;Mode;"Select ""a priori"" for configuration, post-hoc for post-hoc prevalence calculation."
+mode;Mode;"Select ""a priori"" for configuration, ""post-hoc"" for post-hoc prevalence calculation."
 device;Target Device;"Select ""headphones"" or ""loudspeakers"" as the target playback device."
-volume_level;Volume Level;"Select ""-8.4 LUFS"" for highly compressed stimuli with low dynamic range. Select ""-20 LUFS"" for stimuli with normal to high dynamic range. You have to adjust your stimuli to the selected LUFS value (integrated). If you have clipping problems after adjusting your stimuli to -8.4 LUFS the dynamic range of your stimuli is not low enough. In this case you should select -20 LUFS and adjust your stimuli to -20 LUFS."
 parparticipants;Participants;Enter the minimum number of required participants with the target device who passed the screening test.
 base_rate;Baserate/Prevalence;Enter the estimated percentage of headphone users in your target population.
 scc;SCC;"Select ""yes"" if you want to use the ""Split Convince Compare"" method (SCC)."
@@ -12,3 +11,4 @@ lr_disc;Left-Right Discrimination;"Select ""EX"" if participants that have diffi
 mono_inter;Mono/Interchanged CH;"Select ""EX"" if participants with mono playback or interchanged stereo channels should be excluded immediately. Select ""SAVE"" if the obtained information should only be saved."
 screening;Screening Behavior;"Select ""EX"" if participants with a screening result that indicates the usage of the non-target playback device should be excluded immediately. Select ""SAVE"" if the screening result should only be saved."
 max_loops;Loop Threshold;Enter the maximum number of allowed incorrect responses for the loop task (playback level setting) after which the participants will be excluded.
+volume_level;Volume Level;"Select ""-8.4 LUFS"" for highly compressed stimuli with low dynamic range. Select ""-20 LUFS"" for stimuli with normal to high dynamic range. You have to adjust your stimuli to the selected LUFS value (integrated). If you have clipping problems after adjusting your stimuli to -8.4 LUFS the dynamic range of your stimuli is not low enough. In this case you should select -20 LUFS and adjust your stimuli to -20 LUFS."
