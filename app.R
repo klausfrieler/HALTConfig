@@ -24,7 +24,7 @@ get_intro_text <- function(){
          "It is to be used a priori (i.e., in advance of data collection).",
          "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use."),
          p("In the future, we also intend to implement a tool for post-hoc calculations."),
-      p(" This is Version 1.0 for HALT v0.10.0 and higher"),
+      p(" This is Version 1.0 for HALT v0.11.0 and higher"),
       p("Thank you for your interest."),
       p("Kilian Sander, Yves Wycisk"), style = "width:60%;text-align:justify")
 }
