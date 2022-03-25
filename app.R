@@ -101,53 +101,63 @@ ui <- fluidPage(
 )
 
 build_config <- function(input, row) {
-  if(input$conf_auto == "manual") {
-    config <- HALT::make_config(volume_level = input$volume_level,
+  if(input$screening_parts) {
+    if(input$conf_auto == "manual") {
+      config <- HALT::make_config(volume_level = input$volume_level,
+                                  loop_exclude = as.numeric(input$max_loops),
+                                  channel_check = as.logical(input$channel_check),
+                                  lr_img_exclude = as.logical(input$lr_disc),
+                                  lr_audio_exclude = as.logical(input$mono_inter),
+                                  frequency_check = as.logical(input$frequency_check),
+                                  screening_parts = as.logical(input$screening_parts),
+                                  combination_method = input$combination_method,
+                                  A_threshold = input$A_threshold,
+                                  B_threshold = input$B_threshold,
+                                  C_threshold = input$C_threshold,
+                                  baserate_hp = as.numeric(input$baserate_hp),
+                                  devices = input$devices,
+                                  use_scc = as.logical(input$use_scc),
+                                  devices_exclude = as.logical(input$devices_exclude))
+    } else {
+      if (input$conf_auto == "est") {
+        a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
+                                       device = input$device, 
+                                       min_number = as.numeric(input$participants), 
+                                       min_prob =  as.numeric(input$min_prob), 
+                                       tolerance = as.numeric(input$tolerance))
+      } else {
+        #if (input$conf_auto == "auto")
+        a_priori <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp))
+        a_priori <- a_priori %>% dplyr::arrange(desc(utility)) %>% dplyr::select(-logic_expr)
+      }
+      if(length(row) == 0){
+        row <- 1
+      }
+      a_priori <- a_priori[row,]
+      config <- HALT::make_config(combination_method = a_priori$method_code,
+                                  A_threshold = a_priori$A,
+                                  B_threshold = a_priori$B,
+                                  C_threshold = a_priori$C,
+                                  baserate_hp = input$baserate_hp,
+                                  devices = input$device,
+                                  use_scc = as.logical(input$SCC),
+                                  loop_exclude = as.numeric(input$max_loops),
+                                  lr_img_exclude = TRUE,
+                                  lr_audio_exclude = TRUE,
+                                  devices_exclude = as.logical(input$devices_exclude), 
+                                  volume_level = input$volume_level,
+                                  channel_check = TRUE,
+                                  screening_parts = TRUE,
+                                  frequency_check = as.logical(input$frequency_check))
+    }
+  } else {
+    config <- HALT::auto_config(volume_level = input$volume_level,
                                 loop_exclude = as.numeric(input$max_loops),
                                 channel_check = as.logical(input$channel_check),
                                 lr_img_exclude = as.logical(input$lr_disc),
                                 lr_audio_exclude = as.logical(input$mono_inter),
                                 frequency_check = as.logical(input$frequency_check),
-                                screening_parts = as.logical(input$screening_parts),
-                                combination_method = input$combination_method,
-                                A_threshold = input$A_threshold,
-                                B_threshold = input$B_threshold,
-                                C_threshold = input$C_threshold,
-                                baserate_hp = as.numeric(input$baserate_hp),
-                                devices = input$devices,
-                                use_scc = as.logical(input$use_scc),
-                                devices_exclude = as.logical(input$devices_exclude))
-  } else {
-    if (input$conf_auto == "est") {
-      a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
-                                     device = input$device, 
-                                     min_number = as.numeric(input$participants), 
-                                     min_prob =  as.numeric(input$min_prob), 
-                                     tolerance = as.numeric(input$tolerance))
-    } else {
-      #if (input$conf_auto == "auto")
-      a_priori <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp))
-      a_priori <- a_priori %>% dplyr::arrange(desc(utility)) %>% dplyr::select(-logic_expr)
-    }
-    if(length(row) == 0){
-      row <- 1
-    }
-    a_priori <- a_priori[row,]
-    config <- HALT::make_config(combination_method = a_priori$method_code,
-                                A_threshold = a_priori$A,
-                                B_threshold = a_priori$B,
-                                C_threshold = a_priori$C,
-                                baserate_hp = input$baserate_hp,
-                                devices = input$device,
-                                use_scc = as.logical(input$SCC),
-                                loop_exclude = as.numeric(input$max_loops),
-                                lr_img_exclude = TRUE,
-                                lr_audio_exclude = TRUE,
-                                devices_exclude = as.logical(input$devices_exclude), 
-                                volume_level = input$volume_level,
-                                channel_check = TRUE,
-                                screening_parts = TRUE,
-                                frequency_check = as.logical(input$frequency_check))
+                                screening_parts = as.logical(input$screening_parts))
   }
   attr(config, "class") <- "list"
   config <- config %>% as.data.frame()
