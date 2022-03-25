@@ -153,7 +153,7 @@ build_config <- function(input, row) {
   config <- config %>% as.data.frame()
   names(config) <- c("Volume level", "Max. Loops", "Channel check", "LR Exclude (img)", 
                      "LR Exclude (audio)", "Frequency check", "Screening parts",
-                     "Method Code", "A", "B", "C", "Base Rate", "Device", "SCC", "Exclude by device")
+                     "Method Code", "A", "B", "C", "Base Rate", "SCC", "Exclude by devcie", "Device")
   config
 }
 
@@ -164,7 +164,7 @@ server <- function(input, output, session) {
   })
   
   output$config_output <- renderTable({
-    build_config(input, input$selection_output_rows_selected) %>% mutate(A = as.integer(A), B = as.integer(B), C = as.integer(C))
+    build_config(input, input$selection_output_rows_selected) %>% mutate(A = as.integer(A), B = as.integer(B), C = as.integer(C), `Max. Loops` = as.integer(`Max. Loops`))
   }, width = "100%"
   )
   
