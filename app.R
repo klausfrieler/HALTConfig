@@ -53,6 +53,8 @@ ui <- fluidPage(
                                                         c("EX" = TRUE, "SAVE" = FALSE), selected = "ex")),
                            checkboxInput("frequency_check", tags$b("Use frequency check"), value = TRUE),
                            checkboxInput("screening_parts", tags$b("Use screening parts"), value = TRUE),
+                           textInput("baserate_hp", "Base Rate / Prevalence for Headphones:",
+                                     value = round(211.0/1194.0, 2), width = input_width),
                            conditionalPanel(condition = "input.screening_parts == 1",
                                             selectInput("conf_auto", "Screening configuration based on:",
                                                         c("prevalence and overall utility" = "auto",
@@ -60,9 +62,6 @@ ui <- fluidPage(
                                                           "manual threshold specification" = "manual")),
                                             selectInput("devices", "Target Device:",
                                                         c("Headphone" = "HP", "Loudspeaker" = "LS")),
-                                            conditionalPanel(condition = "input.conf_auto != 'manual'",
-                                                             textInput("baserate_hp", "Base Rate / Prevalence for Headphones:",
-                                                                       value = round(211.0/1194.0, 2), width = input_width)),
                                             conditionalPanel(condition = "input.conf_auto == 'manual'",
                                                              selectInput("combination_method",
                                                                          "Test combination / Evaluation key:",
@@ -166,6 +165,23 @@ build_config <- function(input, row) {
                      "LR Exclude (audio)", "Frequency check", "Screening parts",
                      "Method Code", "A", "B", "C", "Base Rate", "SCC", "Exclude by devcie", "Device")
   config
+}
+
+selection_table <- function(input) {
+  if (input$screening_parts) {
+    if (input$conf_auto == "man") {
+      selection <- HALT::test_config %>% filter(method_code == input$combination_method,
+                                                A == input$A_threshold,
+                                                B == input$B_threshold,
+                                                C == input$C_threshold) %>%
+#        dplyr::mutate(`Combination method` = paste0(method, " / ", logic_expr, " (EK ", method_code, ")")) %>% 
+        dplyr::select(-c(logic_expr))
+        dplyr::rename()
+    }
+  } else {
+    selection <- NA
+  }
+  selection
 }
 
 server <- function(input, output, session) {
