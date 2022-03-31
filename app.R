@@ -79,11 +79,11 @@ ui <- fluidPage(
                                                                        value = 300, width = input_width),
                                                              textInput("tolerance", "Tolerance:", value = 0,  width = input_width)),
                                             selectInput("devices_exclude", "Screening Behavior:",
-                                                        c("EX" = TRUE, "SAVE" = FALSE), selected = "save"),
-                                            checkboxInput("use_scc", tags$b("SCC"), value = FALSE),
-                                            conditionalPanel(condition = "input.use_scc == 1",
-                                                             textInput("changerate", "Switching prevalence / change rate",
-                                                                       value = .75))
+                                                        c("EX" = TRUE, "SAVE" = FALSE), selected = "save")#,
+                                            #checkboxInput("use_scc", tags$b("SCC"), value = FALSE),
+                                            #conditionalPanel(condition = "input.use_scc == 1",
+                                            #                 textInput("changerate", "Switching prevalence / change rate",
+                                            #                           value = .75))
                                             ),
                            width = 2
                          ),
@@ -117,7 +117,7 @@ build_config <- function(input, row) {
                                   C_threshold = input$C_threshold,
                                   baserate_hp = as.numeric(input$baserate_hp),
                                   devices = input$devices,
-                                  use_scc = as.logical(input$use_scc),
+                                  #use_scc = as.logical(input$use_scc),
                                   devices_exclude = as.logical(input$devices_exclude))
     } else {
       if (input$conf_auto == "est") {
@@ -139,9 +139,9 @@ build_config <- function(input, row) {
                                   A_threshold = a_priori$A,
                                   B_threshold = a_priori$B,
                                   C_threshold = a_priori$C,
-                                  baserate_hp = input$baserate_hp,
+                                  baserate_hp = as.numeric(input$baserate_hp),
                                   devices = input$devices,
-                                  use_scc = as.logical(input$use_scc),
+                                  #use_scc = as.logical(input$use_scc),
                                   loop_exclude = as.numeric(input$max_loops),
                                   lr_img_exclude = TRUE,
                                   lr_audio_exclude = TRUE,
@@ -175,7 +175,11 @@ server <- function(input, output, session) {
   })
   
   output$config_output <- renderTable({
-    build_config(input, input$selection_output_rows_selected) %>% mutate(A = as.integer(A), B = as.integer(B), C = as.integer(C), `Max. Loops` = as.integer(`Max. Loops`))
+    build_config(input, input$selection_output_rows_selected) %>% mutate(`Method Code` = as.integer(`Method Code`),
+                                                                         A = as.integer(A),
+                                                                         B = as.integer(B),
+                                                                         C = as.integer(C),
+                                                                         `Max. Loops` = as.integer(`Max. Loops`))
   }, width = "100%"
   )
   
