@@ -87,6 +87,7 @@ ui <- fluidPage(
                            width = 2
                          ),
                          mainPanel(h4("Configuration", style = "margin-left:0px;margin-top:30px"),
+                                   div(DT::dataTableOutput("selection_output")),
                                    div(tableOutput("config_output"),
                                        style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;"),
                                    div(downloadButton("download_config", "Download HALT config file", 
@@ -169,19 +170,44 @@ build_config <- function(input, row) {
 
 selection_table <- function(input) {
   if (input$screening_parts) {
-    if (input$conf_auto == "man") {
-      selection <- HALT::test_config %>% filter(method_code == input$combination_method,
-                                                A == input$A_threshold,
-                                                B == input$B_threshold,
-                                                C == input$C_threshold) %>%
-#        dplyr::mutate(`Combination method` = paste0(method, " / ", logic_expr, " (EK ", method_code, ")")) %>% 
-        dplyr::select(-c(logic_expr))
-        dplyr::rename()
+    if (input$conf_auto == "est") {
+      selection <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
+                                      device = input$devices, 
+                                      min_number = as.numeric(input$participants), 
+                                      min_prob =  as.numeric(input$min_prob), 
+                                      tolerance = as.numeric(input$tolerance)) %>% 
+        dplyr::rename(Method = method,
+                      `Eval. Key` = method_code,
+                      Sensitivity = true_hp_rate,
+                      Specificity = true_ls_rate,
+                      PPV = hp_pv,
+                      NPV = ls_pv,
+                      Utility = utility,
+                      `Sample Size` = samplesize,
+                      `Expect. total participants` = expectation_total_participants,
+                      `Min Quality %` = min_quality_percent)
+    } else {# if(input$conf_auto == "man" || input$conf_auto == "auto")
+      selection <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
+        dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
+        dplyr::rename(Method = method,
+                      `Eval. Key` = method_code,
+                      Sensitivity = true_hp_rate,
+                      Specificity = true_ls_rate,
+                      PPV = hp_pv,
+                      NPV = ls_pv,
+                      Utility = utility) %>% 
+        dplyr::arrange(desc(Utility))
+      if (input$conf_auto == "man") {
+        selection <- selection %>% filter(`Eval. Key` == input$combination_method,
+                                          A == input$A_threshold,
+                                          B == input$B_threshold,
+                                          C == input$C_threshold)
+      }
     }
   } else {
     selection <- NA
   }
-  selection
+  selection %>% mutate_if(is.numeric, round, 4)
 }
 
 server <- function(input, output, session) {
@@ -189,6 +215,12 @@ server <- function(input, output, session) {
   output$introduction <- renderUI({
     get_intro_text()
   })
+  
+  output$selection_output <- DT::renderDataTable({
+    DT::datatable(selection_table(input), options = list(lengthMenu = c(5, 10, 50), pageLength = 10),
+                  selection = "single")
+  }, width = "100%"
+  )
   
   output$config_output <- renderTable({
     build_config(input, input$selection_output_rows_selected) %>% mutate(`Method Code` = as.integer(`Method Code`),
