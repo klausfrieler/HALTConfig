@@ -60,8 +60,9 @@ ui <- fluidPage(
                                                           "manual threshold specification" = "manual")),
                                             selectInput("devices", "Target Device:",
                                                         c("Headphone" = "HP", "Loudspeaker" = "LS")),
-                                            textInput("baserate_hp", "Base Rate / Prevalence for Headphones:",
-                                                      value = round(211.0/1194.0, 2), width = input_width),
+                                            conditionalPanel(condition = "input.conf_auto != 'manual'",
+                                                             textInput("baserate_hp", "Base Rate / Prevalence for Headphones:",
+                                                                       value = round(211.0/1194.0, 2), width = input_width)),
                                             conditionalPanel(condition = "input.conf_auto == 'manual'",
                                                              selectInput("combination_method",
                                                                          "Test combination / Evaluation key:",
@@ -121,7 +122,7 @@ build_config <- function(input, row) {
     } else {
       if (input$conf_auto == "est") {
         a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
-                                       device = input$device, 
+                                       device = input$devices, 
                                        min_number = as.numeric(input$participants), 
                                        min_prob =  as.numeric(input$min_prob), 
                                        tolerance = as.numeric(input$tolerance))
@@ -139,8 +140,8 @@ build_config <- function(input, row) {
                                   B_threshold = a_priori$B,
                                   C_threshold = a_priori$C,
                                   baserate_hp = input$baserate_hp,
-                                  devices = input$device,
-                                  use_scc = as.logical(input$SCC),
+                                  devices = input$devices,
+                                  use_scc = as.logical(input$use_scc),
                                   loop_exclude = as.numeric(input$max_loops),
                                   lr_img_exclude = TRUE,
                                   lr_audio_exclude = TRUE,
