@@ -186,26 +186,34 @@ selection_table <- function(input) {
                       `Sample Size` = samplesize,
                       `Expect. total participants` = expectation_total_participants,
                       `Min Quality %` = min_quality_percent)
-    } else {# if(input$conf_auto == "man" || input$conf_auto == "auto")
-      selection <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
-        dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
-        dplyr::rename(Method = method,
-                      `Eval. Key` = method_code,
-                      Sensitivity = true_hp_rate,
-                      Specificity = true_ls_rate,
-                      PPV = hp_pv,
-                      NPV = ls_pv,
-                      Utility = utility) %>% 
-        dplyr::arrange(desc(Utility))
-      if (input$conf_auto == "man") {
-        selection <- selection %>% filter(`Eval. Key` == input$combination_method,
-                                          A == input$A_threshold,
-                                          B == input$B_threshold,
-                                          C == input$C_threshold)
-      }
+    } else {# if(input$conf_auto == "manual" || input$conf_auto == "auto")
+        selection <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
+          dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
+          dplyr::rename(Method = method,
+                        `Eval. Key` = method_code,
+                        Sensitivity = true_hp_rate,
+                        Specificity = true_ls_rate,
+                        PPV = hp_pv,
+                        NPV = ls_pv,
+                        Utility = utility) %>% 
+          dplyr::arrange(desc(Utility))
+        if(input$conf_auto == "manual") {
+          A_threshold <- as.numeric(input$A_threshold)
+          B_threshold <- as.numeric(input$B_threshold)
+          C_threshold <- as.numeric(input$C_threshold)
+          if(input$combination_method %in% c(2,3,6,7)){A_threshold <- 0}
+          if(input$combination_method %in% c(1,3,8,9)){B_threshold <- 0}
+          if(input$combination_method %in% c(1,2,4,5)){C_threshold <- 0}
+          selection <- selection %>%
+            dplyr::filter(`Eval. Key` == as.numeric(input$combination_method),
+                          A == A_threshold,
+                          B == B_threshold,
+                          C == C_threshold)
+        }
     }
   } else {
-    selection <- NA
+    selection <- data.frame(X = "Placeholders are used in the config.") %>% 
+      dplyr::rename(`You deactivated the screening tests.` = X)
   }
   selection %>% mutate_if(is.numeric, round, 4)
 }
