@@ -96,6 +96,7 @@ ui <- fluidPage(
                                    div(downloadButton("download_config", "Download HALT config file", 
                                                       style = "margin:20px;font-size:large;background-color:#ede2a4")),
                                    # explanation
+                                   h3("Explanation of your configuration"),
                                    width = 10)
                        )
               ),
@@ -220,6 +221,24 @@ selection_table <- function(input) {
       dplyr::rename(`You deactivated the screening tests.` = X)
   }
   selection %>% mutate_if(is.numeric, round, 4)
+}
+
+explanation_text <- function(input, row) {
+  if(input$conf_auto = "est") {
+    a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
+                                   device = input$devices, 
+                                   min_number = as.numeric(input$participants), 
+                                   min_prob =  as.numeric(input$min_prob), 
+                                   tolerance = 10000)
+    a_priori <- a_priori[row,]
+    expl <- sprintf(
+      "When the prevelance for headphones in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants classified as %s users is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least %.1f percent.",
+      input$baserate_hp, a_priori$method[1], a_priori$method_code[1],
+      as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
+      as.integer(a_priori$C[1]), as.integer(a_priori$samplesize[1]),
+      input$devices, input$min_prob, as.integer(input$participants),
+      input$devices, a_priori$min_quality_percent[1]) %>% p()
+  }
 }
 
 server <- function(input, output, session) {
