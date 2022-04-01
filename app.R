@@ -75,8 +75,9 @@ ui <- fluidPage(
                                                                        value = .80, width = input_width),
                                                              textInput("participants",
                                                                        "Participants with target device:",
-                                                                       value = 300, width = input_width),
-                                                             textInput("tolerance", "Tolerance:", value = 0,  width = input_width)),
+                                                                       value = 300, width = input_width)#,
+                                                             #textInput("tolerance", "Tolerance:", value = 0,  width = input_width)
+                                                             ),
                                             selectInput("devices_exclude", "Screening Behavior:",
                                                         c("EX" = TRUE, "SAVE" = FALSE), selected = "save")#,
                                             #checkboxInput("use_scc", tags$b("SCC"), value = FALSE),
@@ -86,12 +87,15 @@ ui <- fluidPage(
                                             ),
                            width = 2
                          ),
-                         mainPanel(h4("Configuration", style = "margin-left:0px;margin-top:30px"),
+                         mainPanel(h4("Choose a screening test combination:",
+                                      style = "margin-left:0px;margin-top:30px"),
                                    div(DT::dataTableOutput("selection_output")),
+                                   h3("Your Configuration", style = "margin-left:0px;margin-top:30px"),
                                    div(tableOutput("config_output"),
                                        style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;"),
                                    div(downloadButton("download_config", "Download HALT config file", 
                                                       style = "margin:20px;font-size:large;background-color:#ede2a4")),
+                                   # explanation
                                    width = 10)
                        )
               ),
@@ -125,7 +129,7 @@ build_config <- function(input, row) {
                                        device = input$devices, 
                                        min_number = as.numeric(input$participants), 
                                        min_prob =  as.numeric(input$min_prob), 
-                                       tolerance = as.numeric(input$tolerance))
+                                       tolerance = 10000)
       } else {
         #if (input$conf_auto == "auto")
         a_priori <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp))
@@ -175,7 +179,7 @@ selection_table <- function(input) {
                                       device = input$devices, 
                                       min_number = as.numeric(input$participants), 
                                       min_prob =  as.numeric(input$min_prob), 
-                                      tolerance = as.numeric(input$tolerance)) %>% 
+                                      tolerance = 10000) %>% 
         dplyr::rename(Method = method,
                       `Eval. Key` = method_code,
                       Sensitivity = true_hp_rate,
