@@ -97,6 +97,8 @@ ui <- fluidPage(
                                                       style = "margin:20px;font-size:large;background-color:#ede2a4")),
                                    # explanation
                                    h3("Explanation of your configuration"),
+                                   div(htmlOutput("explanation"),
+                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
                                    width = 10)
                        )
               ),
@@ -224,21 +226,36 @@ selection_table <- function(input) {
 }
 
 explanation_text <- function(input, row) {
-  if(input$conf_auto = "est") {
+  if(input$conf_auto == "est") {
     a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
                                    device = input$devices, 
                                    min_number = as.numeric(input$participants), 
                                    min_prob =  as.numeric(input$min_prob), 
                                    tolerance = 10000)
+    if (length(row) == 0) {
+      row <- 1
+    }
     a_priori <- a_priori[row,]
     expl <- sprintf(
       "When the prevelance for headphones in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants classified as %s users is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least %.1f percent.",
-      input$baserate_hp, a_priori$method[1], a_priori$method_code[1],
+      as.numeric(input$baserate_hp), a_priori$method[1], a_priori$method_code[1],
       as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
       as.integer(a_priori$C[1]), as.integer(a_priori$samplesize[1]),
-      input$devices, input$min_prob, as.integer(input$participants),
-      input$devices, a_priori$min_quality_percent[1]) %>% p()
+      input$devices, as.numeric(input$min_prob), as.integer(input$participants),
+      input$devices, a_priori$min_quality_percent[1])
   }
+  if(input$conf_auto == "auto") {
+    expl <- "No explanantion yet."
+  }
+  if(input$conf_auto == "manual") {
+    expl <- paste0("You specified a test combination and the threshold of each individual test. ",
+                   "If you want to compare various combinations of tests and their thresholds select ",
+                   "'prevalence and overall utility'", " or ", "'sample size estimations'", ".")
+  }
+  if(!input$screening_parts) {
+    expl <- cat("Participants will not be screened for their playback devices.")
+  }
+  expl
 }
 
 server <- function(input, output, session) {
@@ -269,6 +286,10 @@ server <- function(input, output, session) {
       write.table(as.data.frame(config), file, sep = ";", row.names = FALSE, quote = FALSE)
     }
   )
+  
+  output$explanation <- renderText({
+    explanation_text(input, input$selection_output_rows_selected)
+    })
   
   output$parameter_description <- renderTable({
     parameter_description %>% select(-parameter) %>% rename("Parameter" = label, "Description" = description)
