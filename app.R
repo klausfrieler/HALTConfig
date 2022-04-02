@@ -259,7 +259,7 @@ explanation_text <- function(input, row) {
                    "'prevalence and overall utility'", " or ", "'sample size estimations'", ".")
   }
   if(!input$screening_parts) {
-    expl <- cat("Participants will not be screened for their playback devices.")
+    expl <- "Participants will not be screened for their playback devices."
   }
   expl
 }
