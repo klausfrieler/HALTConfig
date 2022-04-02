@@ -65,10 +65,10 @@ ui <- fluidPage(
                                             conditionalPanel(condition = "input.conf_auto == 'manual'",
                                                              selectInput("combination_method",
                                                                          "Test combination / Evaluation key:",
-                                                                         1:18),
-                                                             selectInput("A_threshold", "Test A threshold:",1:6),
-                                                             selectInput("B_threshold", "Test B threshold", 1:6),
-                                                             selectInput("C_threshold", "Test C threshold", 1:6)),
+                                                                         1:18, selected = 11),
+                                                             selectInput("A_threshold", "Test A threshold:",1:6, selected = 5),
+                                                             selectInput("B_threshold", "Test B threshold", 1:6, selected = 5),
+                                                             selectInput("C_threshold", "Test C threshold", 1:6, selected = 5)),
                                             conditionalPanel(condition = "input.conf_auto == 'est'",
                                                              textInput("min_prob",
                                                                        "Minimum Probability  for participants with target device:",
@@ -96,7 +96,7 @@ ui <- fluidPage(
                                    div(downloadButton("download_config", "Download HALT config file", 
                                                       style = "margin:20px;font-size:large;background-color:#ede2a4")),
                                    # explanation
-                                   h3("Explanation of your configuration"),
+                                   h3("Explanation"),
                                    div(htmlOutput("explanation"),
                                        style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
                                    width = 10)
@@ -245,7 +245,13 @@ explanation_text <- function(input, row) {
       input$devices, a_priori$min_quality_percent[1])
   }
   if(input$conf_auto == "auto") {
-    expl <- "No explanantion yet."
+    expl <- paste0("The overall utility describes a utilities-weighted sum of the probabilities ",
+                   "of the four decision-making outcomes (Treat & Viken, 2012, p. 725). ",
+                   "Utilities for the four decision-making are set to maximise the percentage of correct classifications ",
+                   "for the given prevalence. The 'best' test (combination) is the one with the highest overall utility ",
+                   "among several tests for the application.<br>",
+                   "PPV expresses the probability of headphone usage when the screening test is positive. ",
+                   "NPV expresses the probability of loudspeaker usage when the screening test is negative.")
   }
   if(input$conf_auto == "manual") {
     expl <- paste0("You specified a test combination and the threshold of each individual test. ",
