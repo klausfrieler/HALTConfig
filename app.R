@@ -178,7 +178,7 @@ build_config <- function(input, row) {
   config <- config %>% as.data.frame()
   names(config) <- c("Volume level", "Max. Loops", "Channel check", "LR Exclude (img)", 
                      "LR Exclude (audio)", "Frequency check", "Screening parts",
-                     "Method Code", "A", "B", "C", "Base Rate", "SCC", "Exclude by devcie", "Device")
+                     "Method Code", "A", "B", "C", "Base Rate", "SCC", "Exclude by Devcie", "Device")
   config
 }
 
@@ -295,7 +295,7 @@ server <- function(input, output, session) {
   output$download_config <- downloadHandler(
     filename = "HALT_config.csv",
     content = function(file){
-      config <- c("Test", "file")#make_config(input, input$selection_output_rows_selected)
+      config <- build_config(input, input$selection_output_rows_selected)
       write.table(as.data.frame(config), file, sep = ";", row.names = FALSE, quote = FALSE)
     }
   )
