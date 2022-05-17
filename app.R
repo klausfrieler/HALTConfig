@@ -296,6 +296,7 @@ server <- function(input, output, session) {
     filename = "HALT_config.csv",
     content = function(file){
       config <- build_config(input, input$selection_output_rows_selected)
+      names(config) <- names(HALT::auto_config())
       write.table(as.data.frame(config), file, sep = ";", row.names = FALSE, quote = FALSE)
     }
   )
