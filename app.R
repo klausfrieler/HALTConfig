@@ -109,9 +109,29 @@ ui <- fluidPage(
                                    width = 10)
                        )
               ),
-              tabPanel("Info",
+              tabPanel("Configuration Info",
                        tableOutput("parameter_description")
-                       )
+                       ),
+              tabPanel("Post hoc Sample Size Estimations",
+                       sidebarLayout(
+                         sidebarPanel(
+                           tags$style("#mode:{background-color: #72b573}"),
+                           h4("Used Screening Configuration"),
+                           selectInput("screening_strat", "Screening Strategy",
+                                       c("Filter without request" = "fwr",
+                                         "Filter after request" = "far",
+                                         "Split-convince-compare" = "scc")),
+                           selectInput("post_hoc_test_combi", "Test combination/Evaluation key",
+                                       1:18, selected = 11),
+                           selectInput("post_hoc_A", "Test A Threshold:",
+                                       1:6, selected = 5),
+                           selectInput("post_hoc_B", "Test B Threshold:",
+                                       1:6, selected = 5),
+                           selectInput("post_hoc_C", "Test C Threshold:",
+                                       1:6, selected = 5),
+                           width = 2),
+                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample"))
+                       ))
   )
 )
 
