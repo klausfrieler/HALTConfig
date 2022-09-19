@@ -117,6 +117,9 @@ ui <- fluidPage(
                          sidebarPanel(
                            tags$style("#mode:{background-color: #72b573}"),
                            h4("Used Screening Configuration"),
+                           selectInput("post_hoc_target", "Target Device:",
+                                       c("Headphones" = "hp",
+                                         "Loudspeakers" = "ls")),
                            selectInput("screening_strat", "Screening Strategy",
                                        c("Filter without request" = "fwr",
                                          "Filter after request" = "far",
@@ -129,6 +132,16 @@ ui <- fluidPage(
                                        1:6, selected = 5),
                            selectInput("post_hoc_C", "Test C Threshold:",
                                        1:6, selected = 5),
+                           conditionalPanel(condition = "input.screening_strat != 'far'",
+                                            tags$b("(Estimated) Unbiased Base Rate/Prevalence for Headphones:")),
+                           conditionalPanel(condition = "input.screening_strat == 'far'",
+                                            tags$b("(Estimated) Base Rate/Prevalence for Headphones after Instruction to use the target device:")),
+                           textInput("post_hoc_baserate", "",
+                                     value = round(211/1194, 2), width = input_width),
+                           conditionalPanel(condition = "input.screening_strat == 'scc'",
+                                            textInput("post_hoc_switch_rate",
+                                                      "(Estimated) Switching Prevalence:",
+                                                      value = 3/4, width = input_width)),
                            width = 2),
                          mainPanel(h4("Probabilistic Statements About the Composition of a Sample"))
                        ))
