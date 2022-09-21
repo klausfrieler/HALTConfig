@@ -119,8 +119,8 @@ ui <- fluidPage(
                            tags$style("#mode:{background-color: #72b573}"),
                            h4("Used Screening Configuration"),
                            selectInput("post_hoc_target", "Target Device:",
-                                       c("Headphones" = "hp",
-                                         "Loudspeakers" = "ls")),
+                                       c("Headphones" = "HP",
+                                         "Loudspeakers" = "LS")),
                            selectInput("screening_strat", "Screening Strategy",
                                        c("Filter without request" = "fwr",
                                          "Filter after request" = "far",
@@ -153,8 +153,23 @@ ui <- fluidPage(
                                             textInput("post_hoc_target_tested",
                                                       "Number of participants who swithed to the target device according to screening:",
                                                       value = 10)),
+                           selectInput("post_hoc_mode", "Estimation based on:",
+                                       c("Minimum number" = "min_number",
+                                         "Minimum probability" = "min_prob")),
+                           conditionalPanel(condition = "input.post_hoc_mode == 'min_number'",
+                                            sliderInput("post_hoc_min_number", "Minimum number of participants with target device:",
+                                                        min = 1, max = 10000, value = 2, step = 1,
+                                                        round = TRUE)),
+                           conditionalPanel(condition = "input.post_hoc_mode == 'min_prob'",
+                                            sliderInput("post_hoc_min_prob",
+                                                        "Minimum probability for number of target device users:",
+                                                        min = .5, max = .99, value = .8, step = .01,
+                                                        round = FALSE)),
                            width = 2),
-                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample"))
+                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample"),
+                                   div(textOutput("post_hoc_explanation"),
+                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;")
+                                   )
                        ))
   )
 )
@@ -315,6 +330,53 @@ explanation_text <- function(input, row) {
   expl
 }
 
+post_hoc_text <- function(input) {
+  config <- make_config(combination_method = input$post_hoc_test_combi,
+                        A_threshold = input$post_hoc_A,
+                        B_threshold = input$post_hoc_B,
+                        C_threshold = input$post_hoc_C,
+                        baserate_hp = ifelse(input$screening_strat == "scc",
+                                             input$post_hoc_switch_rate,
+                                             input$post_hoc_baserate) %>% as.numeric(),
+                        devices = input$post_hoc_target,
+                        use_scc = (input$screening_strat == "scc"))
+  if (input$post_hoc_mode == "min_number") {
+    min_number <- input$post_hoc_min_number
+    min_prob <-
+      post_hoc_calc_min_prob(screening_strat = input$screening_strat,
+                             config = config,
+                             min_number = min_number,
+                             sample_size = input$post_hoc_samplesize %>% as.numeric(),
+                             target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
+                             target_tested = input$post_hoc_target_tested %>% as.numeric(),
+                             switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+    
+  } else {
+    min_prob <- input$post_hoc_min_prob
+    min_number <-
+      post_hoc_calc_min_number(screening_strat = input$screening_strat,
+                               config = config,
+                               min_prob = min_prob,
+                               sample_size = input$post_hoc_samplesize %>% as.numeric(),
+                               target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
+                               target_tested = input$post_hoc_target_tested %>% as.numeric(),
+                               switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+  }
+  post_hoc_explanation(screening_strat = input$screening_strat,
+                       combination_method = input$post_hoc_test_combi %>% as.numeric(),
+                       A = input$post_hoc_A %>% as.numeric(),
+                       B = input$post_hoc_B %>% as.numeric(),
+                       C = input$post_hoc_C %>% as.numeric(),
+                       devices = input$post_hoc_target,
+                       baserate_hp = input$post_hoc_baserate %>% as.numeric(),
+                       min_number = min_number,
+                       min_prob = min_prob,
+                       sample_size = input$post_hoc_samplesize %>% as.numeric(),
+                       target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
+                       target_tested = input$post_hoc_target_tested %>% as.numeric(),
+                       switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+}
+
 server <- function(input, output, session) {
   message("*** STARTING APP***")
   output$introduction <- renderUI({
@@ -351,6 +413,21 @@ server <- function(input, output, session) {
   
   output$parameter_description <- renderTable({
     parameter_description %>% select(-parameter) %>% rename("Parameter" = label, "Description" = description)
+  })
+  
+  output$post_hoc_explanation <- renderText({
+    post_hoc_text(input = input)
+  })
+  
+  observe({
+    max_min_number <-
+      ifelse(input$screening_strat == "scc",
+             as.numeric(input$post_hoc_target_selfreport) +
+               as.numeric(input$post_hoc_target_tested),
+             as.numeric(input$post_hoc_samplesize))
+    # Control the value, min, max
+    updateSliderInput(session, "post_hoc_min_number", value = max_min_number %/% 2,
+                      min = 1, max = max_min_number)
   })
 }
   
