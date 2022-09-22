@@ -168,8 +168,9 @@ ui <- fluidPage(
                            width = 2),
                          mainPanel(h4("Probabilistic Statements About the Composition of a Sample"),
                                    div(textOutput("post_hoc_explanation"),
-                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;")
-                                   )
+                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
+                                   div(tableOutput("post_hoc_table"),
+                                                   style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;")                                   )
                        ))
   )
 )
@@ -377,6 +378,69 @@ post_hoc_text <- function(input) {
                        switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
 }
 
+post_hoc_table <- function(input) {
+  config <- make_config(combination_method = input$post_hoc_test_combi,
+                        A_threshold = input$post_hoc_A,
+                        B_threshold = input$post_hoc_B,
+                        C_threshold = input$post_hoc_C,
+                        baserate_hp = ifelse(input$screening_strat == "scc",
+                                             input$post_hoc_switch_rate,
+                                             input$post_hoc_baserate) %>% as.numeric(),
+                        devices = input$post_hoc_target,
+                        use_scc = (input$screening_strat == "scc"))
+  
+  if (input$post_hoc_mode == "min_number") {
+    min_number <- input$post_hoc_min_number
+    min_prob <-
+      post_hoc_calc_min_prob(screening_strat = input$screening_strat,
+                             config = config,
+                             min_number = min_number,
+                             sample_size = as.numeric(input$post_hoc_samplesize),
+                             target_selfreported = as.numeric(input$post_hoc_target_selfreport),
+                             target_tested = as.numeric(input$post_hoc_target_tested),
+                             switch_to_target = as.numeric(input$post_hoc_switch_rate))
+    
+  } else {
+    min_prob <- input$post_hoc_min_prob
+    min_number <-
+      post_hoc_calc_min_number(screening_strat = input$screening_strat,
+                               config = config,
+                               min_prob = min_prob,
+                               sample_size = as.numeric(input$post_hoc_samplesize),
+                               target_selfreported = as.numeric(input$post_hoc_target_selfreport),
+                               target_tested = as.numeric(input$post_hoc_target_tested),
+                               switch_to_target = as.numeric(input$post_hoc_switch_rate))
+  }
+  pht <-
+    post_hoc_tibble(screening_strat = input$screening_strat,
+                    combination_method = config$combination_method,
+                    A = config$A_threshold,
+                    B = config$B_threshold,
+                    C = config$C_threshold,
+                    target_device = input$post_hoc_target,
+                    sample_size = as.numeric(input$post_hoc_samplesize),
+                    target_selfreported = as.numeric(input$post_hoc_target_selfreport),
+                    target_tested = as.numeric(input$post_hoc_target_tested),
+                    baserate_hp = as.numeric(input$post_hoc_baserate),
+                    switch_to_target = as.numeric(input$post_hoc_switch_rate),
+                    min_number = min_number,
+                    min_prob = min_prob) %>% 
+    rename(`Screening Strategy` = screening_strat,
+           `Combination Method` = combination_method,
+           `Target Device` = target_device,
+           `Minimum Number` = min_number,
+           `Minium Probability` = min_prob,
+           `Min. Quality %` = min_data_qual_perc)
+  if (input$screening_strat == "scc") {
+    pht %>% rename(`Switching Prevalence` = switch_to_target,
+                   `Reported Target Devices` = target_selfreported,
+                   `Tested Target Devices` = target_tested)
+  } else {
+    pht %>% rename(`Final Sample Size` = sample_size,
+                   `Prevalence for Headphones` = baserate_hp)
+  }
+}
+
 server <- function(input, output, session) {
   message("*** STARTING APP***")
   output$introduction <- renderUI({
@@ -417,6 +481,10 @@ server <- function(input, output, session) {
   
   output$post_hoc_explanation <- renderText({
     post_hoc_text(input = input)
+  })
+  
+  output$post_hoc_table <- renderTable({
+    post_hoc_table(input = input)
   })
   
   observe({
