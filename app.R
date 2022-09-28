@@ -151,7 +151,7 @@ ui <- fluidPage(
                                                       "Number of participants who reported the target device:",
                                                       value = 10),
                                             textInput("post_hoc_target_tested",
-                                                      "Number of participants who swithed to the target device according to screening:",
+                                                      "Number of participants who switched to the target device according to screening:",
                                                       value = 10)),
                            selectInput("post_hoc_mode", "Estimation based on:",
                                        c("Minimum number" = "min_number",
