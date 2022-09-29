@@ -23,7 +23,8 @@ get_intro_text <- function(){
       p("This tool determines an optimal screening test combination for headphones and loudspeakers.",
         "It is to be used a priori (i.e., in advance of data collection).",
         "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use."),
-      p("In the future, we also intend to implement a tool for post-hoc calculations."),
+      p("We also implemented a tool for post-hoc calculations (see Post hoc Sample Size Estimations tab).",
+        "With this tool you can estimate the composition of a given sample after a screening procedure was applied."),
       p("This is Version 1.0 for HALT v0.11.0 and higher"),
       p("Thank you for your interest."),
       p("Kilian Sander, Yves Wycisk"), style = "width:90%;text-align:justify")
@@ -109,9 +110,68 @@ ui <- fluidPage(
                                    width = 10)
                        )
               ),
-              tabPanel("Info",
+              tabPanel("Configuration Info",
                        tableOutput("parameter_description")
-                       )
+                       ),
+              tabPanel("Post hoc Sample Size Estimations",
+                       sidebarLayout(
+                         sidebarPanel(
+                           tags$style("#mode:{background-color: #72b573}"),
+                           h4("Used Screening Configuration"),
+                           selectInput("post_hoc_target", "Target Device:",
+                                       c("Headphones" = "HP",
+                                         "Loudspeakers" = "LS")),
+                           selectInput("screening_strat", "Screening Strategy",
+                                       c("Filter without request" = "fwr",
+                                         "Filter after request" = "far",
+                                         "Split-convince-compare" = "scc")),
+                           selectInput("post_hoc_test_combi", "Test combination/Evaluation key",
+                                       1:18, selected = 11),
+                           selectInput("post_hoc_A", "Test A Threshold:",
+                                       1:6, selected = 5),
+                           selectInput("post_hoc_B", "Test B Threshold:",
+                                       1:6, selected = 5),
+                           selectInput("post_hoc_C", "Test C Threshold:",
+                                       1:6, selected = 5),
+                           conditionalPanel(condition = "input.screening_strat != 'far'",
+                                            tags$b("(Estimated) Unbiased Base Rate/Prevalence for Headphones:")),
+                           conditionalPanel(condition = "input.screening_strat == 'far'",
+                                            tags$b("(Estimated) Base Rate/Prevalence for Headphones after Instruction to use the target device:")),
+                           textInput("post_hoc_baserate", "",
+                                     value = round(211/1194, 2), width = input_width),
+                           conditionalPanel(condition = "input.screening_strat != 'scc'",
+                                            textInput("post_hoc_samplesize",
+                                                      "Number of participants with target device according to screening:",
+                                                      value = "10")),
+                           conditionalPanel(condition = "input.screening_strat == 'scc'",
+                                            textInput("post_hoc_switch_rate",
+                                                      "(Estimated) Switching Prevalence:",
+                                                      value = 3/4, width = input_width),
+                                            textInput("post_hoc_target_selfreport",
+                                                      "Number of participants who reported the target device:",
+                                                      value = 10),
+                                            textInput("post_hoc_target_tested",
+                                                      "Number of participants who switched to the target device according to screening:",
+                                                      value = 10)),
+                           selectInput("post_hoc_mode", "Estimation based on:",
+                                       c("Minimum number" = "min_number",
+                                         "Minimum probability" = "min_prob")),
+                           conditionalPanel(condition = "input.post_hoc_mode == 'min_number'",
+                                            sliderInput("post_hoc_min_number", "Minimum number of participants with target device:",
+                                                        min = 1, max = 10000, value = 2, step = 1,
+                                                        round = TRUE)),
+                           conditionalPanel(condition = "input.post_hoc_mode == 'min_prob'",
+                                            sliderInput("post_hoc_min_prob",
+                                                        "Minimum probability for number of target device users:",
+                                                        min = .5, max = .99, value = .8, step = .01,
+                                                        round = FALSE)),
+                           width = 2),
+                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample"),
+                                   div(textOutput("post_hoc_explanation"),
+                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
+                                   div(tableOutput("post_hoc_table"),
+                                                   style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;")                                   )
+                       ))
   )
 )
 
@@ -271,6 +331,116 @@ explanation_text <- function(input, row) {
   expl
 }
 
+post_hoc_text <- function(input) {
+  config <- make_config(combination_method = input$post_hoc_test_combi,
+                        A_threshold = input$post_hoc_A,
+                        B_threshold = input$post_hoc_B,
+                        C_threshold = input$post_hoc_C,
+                        baserate_hp = ifelse(input$screening_strat == "scc",
+                                             input$post_hoc_switch_rate,
+                                             input$post_hoc_baserate) %>% as.numeric(),
+                        devices = input$post_hoc_target,
+                        use_scc = (input$screening_strat == "scc"))
+  if (input$post_hoc_mode == "min_number") {
+    min_number <- input$post_hoc_min_number
+    min_prob <-
+      post_hoc_calc_min_prob(screening_strat = input$screening_strat,
+                             config = config,
+                             min_number = min_number,
+                             sample_size = input$post_hoc_samplesize %>% as.numeric(),
+                             target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
+                             target_tested = input$post_hoc_target_tested %>% as.numeric(),
+                             switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+    
+  } else {
+    min_prob <- input$post_hoc_min_prob
+    min_number <-
+      post_hoc_calc_min_number(screening_strat = input$screening_strat,
+                               config = config,
+                               min_prob = min_prob,
+                               sample_size = input$post_hoc_samplesize %>% as.numeric(),
+                               target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
+                               target_tested = input$post_hoc_target_tested %>% as.numeric(),
+                               switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+  }
+  post_hoc_explanation(screening_strat = input$screening_strat,
+                       combination_method = input$post_hoc_test_combi %>% as.numeric(),
+                       A = input$post_hoc_A %>% as.numeric(),
+                       B = input$post_hoc_B %>% as.numeric(),
+                       C = input$post_hoc_C %>% as.numeric(),
+                       devices = input$post_hoc_target,
+                       baserate_hp = input$post_hoc_baserate %>% as.numeric(),
+                       min_number = min_number,
+                       min_prob = min_prob,
+                       sample_size = input$post_hoc_samplesize %>% as.numeric(),
+                       target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
+                       target_tested = input$post_hoc_target_tested %>% as.numeric(),
+                       switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+}
+
+post_hoc_table <- function(input) {
+  config <- make_config(combination_method = input$post_hoc_test_combi,
+                        A_threshold = input$post_hoc_A,
+                        B_threshold = input$post_hoc_B,
+                        C_threshold = input$post_hoc_C,
+                        baserate_hp = ifelse(input$screening_strat == "scc",
+                                             input$post_hoc_switch_rate,
+                                             input$post_hoc_baserate) %>% as.numeric(),
+                        devices = input$post_hoc_target,
+                        use_scc = (input$screening_strat == "scc"))
+  
+  if (input$post_hoc_mode == "min_number") {
+    min_number <- input$post_hoc_min_number
+    min_prob <-
+      post_hoc_calc_min_prob(screening_strat = input$screening_strat,
+                             config = config,
+                             min_number = min_number,
+                             sample_size = as.numeric(input$post_hoc_samplesize),
+                             target_selfreported = as.numeric(input$post_hoc_target_selfreport),
+                             target_tested = as.numeric(input$post_hoc_target_tested),
+                             switch_to_target = as.numeric(input$post_hoc_switch_rate))
+    
+  } else {
+    min_prob <- input$post_hoc_min_prob
+    min_number <-
+      post_hoc_calc_min_number(screening_strat = input$screening_strat,
+                               config = config,
+                               min_prob = min_prob,
+                               sample_size = as.numeric(input$post_hoc_samplesize),
+                               target_selfreported = as.numeric(input$post_hoc_target_selfreport),
+                               target_tested = as.numeric(input$post_hoc_target_tested),
+                               switch_to_target = as.numeric(input$post_hoc_switch_rate))
+  }
+  pht <-
+    post_hoc_tibble(screening_strat = input$screening_strat,
+                    combination_method = config$combination_method,
+                    A = config$A_threshold,
+                    B = config$B_threshold,
+                    C = config$C_threshold,
+                    target_device = input$post_hoc_target,
+                    sample_size = as.numeric(input$post_hoc_samplesize),
+                    target_selfreported = as.numeric(input$post_hoc_target_selfreport),
+                    target_tested = as.numeric(input$post_hoc_target_tested),
+                    baserate_hp = as.numeric(input$post_hoc_baserate),
+                    switch_to_target = as.numeric(input$post_hoc_switch_rate),
+                    min_number = min_number,
+                    min_prob = min_prob) %>% 
+    rename(`Screening Strategy` = screening_strat,
+           `Combination Method` = combination_method,
+           `Target Device` = target_device,
+           `Minimum Number` = min_number,
+           `Minium Probability` = min_prob,
+           `Min. Quality %` = min_data_qual_perc)
+  if (input$screening_strat == "scc") {
+    pht %>% rename(`Switching Prevalence` = switch_to_target,
+                   `Reported Target Devices` = target_selfreported,
+                   `Tested Target Devices` = target_tested)
+  } else {
+    pht %>% rename(`Final Sample Size` = sample_size,
+                   `Prevalence for Headphones` = baserate_hp)
+  }
+}
+
 server <- function(input, output, session) {
   message("*** STARTING APP***")
   output$introduction <- renderUI({
@@ -307,6 +477,25 @@ server <- function(input, output, session) {
   
   output$parameter_description <- renderTable({
     parameter_description %>% select(-parameter) %>% rename("Parameter" = label, "Description" = description)
+  })
+  
+  output$post_hoc_explanation <- renderText({
+    post_hoc_text(input = input)
+  })
+  
+  output$post_hoc_table <- renderTable({
+    post_hoc_table(input = input)
+  })
+  
+  observe({
+    max_min_number <-
+      ifelse(input$screening_strat == "scc",
+             as.numeric(input$post_hoc_target_selfreport) +
+               as.numeric(input$post_hoc_target_tested),
+             as.numeric(input$post_hoc_samplesize))
+    # Control the value, min, max
+    updateSliderInput(session, "post_hoc_min_number", value = max_min_number %/% 2,
+                      min = 1, max = max_min_number)
   })
 }
   
