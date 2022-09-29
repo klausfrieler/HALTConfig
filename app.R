@@ -429,6 +429,7 @@ post_hoc_table <- function(input) {
     rename(`Screening Strategy` = screening_strat,
            `Combination Method` = combination_method,
            `Target Device` = target_device,
+           `Final Sample Size` = sample_size,
            `Minimum Number` = min_number,
            `Minium Probability` = min_prob,
            `Min. Quality %` = min_data_qual_perc)
@@ -437,8 +438,7 @@ post_hoc_table <- function(input) {
                    `Reported Target Devices` = target_selfreported,
                    `Tested Target Devices` = target_tested)
   } else {
-    pht %>% rename(`Final Sample Size` = sample_size,
-                   `Prevalence for Headphones` = baserate_hp)
+    pht %>% rename(`Prevalence for Headphones` = baserate_hp)
   }
 }
 
