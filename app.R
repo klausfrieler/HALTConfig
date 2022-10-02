@@ -172,7 +172,9 @@ ui <- fluidPage(
                                        style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
                                    div(tableOutput("post_hoc_table"),
                                                    style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;")                                   )
-                       ))
+                       )),
+              tabPanel("References",
+                       includeMarkdown("inst/references.md"))
   )
 )
 
