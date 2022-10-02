@@ -364,6 +364,10 @@ post_hoc_text <- function(input) {
                                target_tested = input$post_hoc_target_tested %>% as.numeric(),
                                switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
   }
+  min_data_qual_perc <- ifelse(input$screening_strat == "scc",
+                               min_number / (as.numeric(input$post_hoc_target_selfreport) +
+                                               as.numeric(input$post_hoc_target_tested)),
+                               min_number / as.numeric(input$post_hoc_samplesize)) * 100
   post_hoc_explanation(screening_strat = input$screening_strat,
                        combination_method = input$post_hoc_test_combi %>% as.numeric(),
                        A = input$post_hoc_A %>% as.numeric(),
@@ -376,7 +380,8 @@ post_hoc_text <- function(input) {
                        sample_size = input$post_hoc_samplesize %>% as.numeric(),
                        target_selfreported = input$post_hoc_target_selfreport %>% as.numeric(),
                        target_tested = input$post_hoc_target_tested %>% as.numeric(),
-                       switch_to_target = input$post_hoc_switch_rate %>% as.numeric())
+                       switch_to_target = input$post_hoc_switch_rate %>% as.numeric(),
+                       min_data_qual_perc = min_data_qual_perc)
 }
 
 post_hoc_table <- function(input) {
