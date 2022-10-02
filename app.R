@@ -26,7 +26,7 @@ get_intro_text <- function(){
         "The option 'SCC' (Split-Convince-Compare) will also be available for configuration in the future."),
       p("We also implemented a tool for post-hoc calculations (see Post hoc Sample Size Estimations tab).",
         "With this tool you can estimate the composition of a given sample after a screening procedure was applied."),
-      p("This is Version 1.0 for HALT v0.11.0 and higher"),
+      p("This is Version 1.1 for HALT v0.11.0 and higher"),
       p("Thank you for your interest."),
       p("Kilian Sander, Yves Wycisk"), style = "width:90%;text-align:justify")
 }
