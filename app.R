@@ -108,7 +108,7 @@ ui <- fluidPage(
                                    # explanation
                                    h3("Explanation"),
                                    div(htmlOutput("explanation"),
-                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
+                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px; margin-bottom: 25px;"),
                                    width = 10)
                        )
               ),
@@ -169,11 +169,13 @@ ui <- fluidPage(
                                                         min = .5, max = .99, value = .8, step = .01,
                                                         round = FALSE)),
                            width = 2),
-                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample"),
+                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample",
+                                      style = "margin-left:0px;margin-top:30px"),
                                    div(textOutput("post_hoc_explanation"),
                                        style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
                                    div(tableOutput("post_hoc_table"),
-                                                   style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;")                                   )
+                                                   style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;margin-top:20px;"),
+                                   width = 10)
                        )),
               tabPanel("References",
                        includeMarkdown("inst/references.md"))
@@ -323,7 +325,19 @@ explanation_text <- function(input, row) {
                    "for the given prevalence. The 'best' test (combination) is the one with the highest overall utility ",
                    "among several tests for the application.<br>",
                    "PPV expresses the probability of headphone usage when the screening test is positive. ",
-                   "NPV expresses the probability of loudspeaker usage when the screening test is negative.")
+                   "NPV expresses the probability of loudspeaker usage when the screening test is negative.<br>")
+    a_priori <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
+      filter(utility == max(utility))
+    multiple_best_tests <- dim(a_priori)[[1]] > 1
+    expl <- paste0(
+      expl,
+      paste0(sprintf("When the prevalence for headphones is %.4f ", as.numeric(input$baserate_hp)),
+             ifelse(multiple_best_tests,
+                    "there are multiple 'best' test combinations.",
+                    sprintf("the test (combination) '%s' with thresholds %i, %i, and %i for Test A, Test B, and Test C, respectively, is the 'best' test (combination).",
+                            evaluation_keys()[input$combination_method], a_priori$A[[1]],
+                            a_priori$B[[1]], a_priori$C[[1]])))
+    )
   }
   if(input$conf_auto == "manual") {
     expl <- paste0("You specified a test combination and the threshold of each individual test. ",
@@ -433,7 +447,7 @@ post_hoc_table <- function(input) {
                     target_tested = as.integer(input$post_hoc_target_tested),
                     baserate_hp = as.numeric(input$post_hoc_baserate),
                     switch_to_target = as.numeric(input$post_hoc_switch_rate),
-                    min_number = min_number,
+                    min_number = as.integer(min_number),
                     min_prob = min_prob) %>% 
     rename(`Screening Strategy` = screening_strat,
            `Combination Method` = combination_method,
