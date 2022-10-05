@@ -286,29 +286,45 @@ selection_table <- function(input) {
       #  selection <- selection %>% select(-scc_target, -prob_scc_target)
       #}
     } else {# if(input$conf_auto == "manual" || input$conf_auto == "auto")
-        selection <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
-          dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
-          dplyr::rename(Method = method,
-                        `Eval. Key` = method_code,
-                        Sensitivity = true_hp_rate,
-                        Specificity = true_ls_rate,
-                        PPV = hp_pv,
-                        NPV = ls_pv,
-                        Utility = utility) %>% 
-          dplyr::arrange(desc(Utility))
-        if(input$conf_auto == "manual") {
-          A_threshold <- as.numeric(input$A_threshold)
-          B_threshold <- as.numeric(input$B_threshold)
-          C_threshold <- as.numeric(input$C_threshold)
-          if(input$combination_method %in% c(2,3,6,7)){A_threshold <- 0}
-          if(input$combination_method %in% c(1,3,8,9)){B_threshold <- 0}
-          if(input$combination_method %in% c(1,2,4,5)){C_threshold <- 0}
-          selection <- selection %>%
-            dplyr::filter(`Eval. Key` == as.numeric(input$combination_method),
-                          A == A_threshold,
-                          B == B_threshold,
-                          C == C_threshold)
-        }
+      if (input$use_scc) {
+        selection <-
+          tests_scc_utility(baserate_hp = as.numeric(input$baserate_hp),
+                            devices = input$devices,
+                            switch_to_target = as.numeric(input$switch_to_target)) %>%
+          select(-scc_target,-prob_scc_target)
+      } else {
+        selection <-
+          tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp))
+      }
+      selection <- selection %>%
+        dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
+        dplyr::rename(Method = method,
+                      `Eval. Key` = method_code,
+                      Sensitivity = true_hp_rate,
+                      Specificity = true_ls_rate,
+                      PPV = ifelse(input$use_scc,
+                                   "scc_hp_pv",
+                                   "hp_pv"),
+                      NPV = ifelse(input$use_scc,
+                                   "scc_ls_pv",
+                                   "ls_pv"),
+                      Utility = ifelse(input$use_scc,
+                                       "scc_utility",
+                                       "utility")) %>% 
+        dplyr::arrange(desc(Utility))
+      if(input$conf_auto == "manual") {
+        A_threshold <- as.numeric(input$A_threshold)
+        B_threshold <- as.numeric(input$B_threshold)
+        C_threshold <- as.numeric(input$C_threshold)
+        if(input$combination_method %in% c(2,3,6,7)){A_threshold <- 0}
+        if(input$combination_method %in% c(1,3,8,9)){B_threshold <- 0}
+        if(input$combination_method %in% c(1,2,4,5)){C_threshold <- 0}
+        selection <- selection %>%
+          dplyr::filter(`Eval. Key` == as.numeric(input$combination_method),
+                        A == A_threshold,
+                        B == B_threshold,
+                        C == C_threshold)
+      }
     }
   } else {
     selection <- data.frame(X = "Placeholders are used in the config.") %>% 
@@ -384,11 +400,19 @@ explanation_text <- function(input, row) {
     expl <- paste0(
       expl,
       paste0(sprintf("When the prevalence for headphones is %.4f ", as.numeric(input$baserate_hp)),
+             ifelse(input$use_scc,
+                    sprintf("and the switching prevalence is %.4f ",
+                            as.numeric(input$switch_to_target)),
+                    ""),
              ifelse(multiple_best_tests,
-                    "there are multiple 'best' test combinations.",
-                    sprintf("the test (combination) '%s' with thresholds %i, %i, and %i for Test A, Test B, and Test C, respectively, is the 'best' test (combination).",
+                    "there are multiple 'best' test combinations ",
+                    sprintf("the test (combination) '%s' with thresholds %i, %i, and %i for Test A, Test B, and Test C, respectively, is the 'best' test (combination) ",
                             evaluation_keys()[input$combination_method], a_priori$A[[1]],
-                            a_priori$B[[1]], a_priori$C[[1]])))
+                            a_priori$B[[1]], a_priori$C[[1]])),
+             sprintf("within %s.",
+                     ifelse(input$use_scc,
+                            "SCC",
+                            "FWR/FAR")))
     )
   }
   if(input$conf_auto == "manual") {
