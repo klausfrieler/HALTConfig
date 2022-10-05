@@ -62,9 +62,13 @@ ui <- fluidPage(
                            tags$hr(),
                            h4("Screening"),
                            checkboxInput("screening_parts", tags$b("Use Screening Parts"), value = TRUE),
-                           textInput("baserate_hp", "Base Rate/Prevalence for Headphones:",
-                                     value = round(211.0/1194.0, 2), width = input_width),
                            conditionalPanel(condition = "input.screening_parts == 1",
+                                            checkboxInput("use_scc", tags$b("SCC"), value = FALSE),
+                                            textInput("baserate_hp", "Base Rate/Prevalence for Headphones:",
+                                                      value = round(211.0/1194.0, 2), width = input_width),
+                                            conditionalPanel(condition = "input.use_scc == 1",
+                                                             textInput("switch_to_target", "Switching prevalence:",
+                                                                       value = 0.75)),
                                             selectInput("conf_auto", "Screening configuration based on:",
                                                         c("prevalence and overall utility" = "auto",
                                                           "sample size estimations" = "est",
@@ -252,21 +256,35 @@ build_config <- function(input, row) {
 selection_table <- function(input) {
   if (input$screening_parts) {
     if (input$conf_auto == "est") {
-      selection <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
-                                      device = input$devices, 
-                                      min_number = as.numeric(input$participants), 
-                                      min_prob =  as.numeric(input$min_prob), 
-                                      tolerance = 10000) %>% 
+      selection <-
+        HALT::a_priori_estimation(screening_strat = ifelse(as.logical(input$use_scc),
+                                                           "scc",
+                                                           "far"),
+                                  baserate_hp = as.numeric(input$baserate_hp),
+                                  switch_to_target = as.numeric(input$switch_to_target),
+                                  devices = input$devices,
+                                  min_number = as.numeric(input$participants),
+                                  min_prob =  as.numeric(input$min_prob),
+                                  tolerance = 10000) %>%
         dplyr::rename(Method = method,
                       `Eval. Key` = method_code,
                       Sensitivity = true_hp_rate,
                       Specificity = true_ls_rate,
-                      PPV = hp_pv,
-                      NPV = ls_pv,
-                      Utility = utility,
+                      PPV = ifelse(as.logical(input$use_scc),
+                                   "scc_hp_pv",
+                                   "hp_pv"),
+                      NPV = ifelse(as.logical(input$use_scc),
+                                   "scc_ls_pv",
+                                   "ls_pv"),
+                      Utility = ifelse(as.logical(input$use_scc),
+                                       "scc_utility",
+                                       "utility"),
                       `Sample Size` = samplesize,
                       `Expect. total participants` = expectation_total_participants,
                       `Min Quality %` = min_quality_percent)
+      #if (as.logical(input$use_scc)) {
+      #  selection <- selection %>% select(-scc_target, -prob_scc_target)
+      #}
     } else {# if(input$conf_auto == "manual" || input$conf_auto == "auto")
         selection <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
           dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
@@ -300,23 +318,48 @@ selection_table <- function(input) {
 }
 
 explanation_text <- function(input, row) {
+  devices <- ifelse(input$devices == "HP", "headphones", "loudspeakers")
   if(input$conf_auto == "est") {
-    a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
-                                   device = input$devices, 
-                                   min_number = as.numeric(input$participants), 
-                                   min_prob =  as.numeric(input$min_prob), 
+    a_priori <- HALT::a_priori_est(baserate_hp = ifelse(input$use_scc,
+                                                        ifelse(input$devices == "HP",
+                                                               as.numeric(input$switch_to_target),
+                                                               1 - as.numeric(input$switch_to_target)),
+                                                        as.numeric(input$baserate_hp)),
+                                   device = input$devices,
+                                   min_number = as.numeric(input$participants),
+                                   min_prob =  as.numeric(input$min_prob),
                                    tolerance = 10000)
     if (length(row) == 0) {
       row <- 1
     }
     a_priori <- a_priori[row,]
-    expl <- sprintf(
-      "When the prevelance for headphones in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants classified as %s users is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least %.1f percent.",
-      as.numeric(input$baserate_hp), a_priori$method[1], a_priori$method_code[1],
-      as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
-      as.integer(a_priori$C[1]), as.integer(a_priori$samplesize[1]),
-      input$devices, as.numeric(input$min_prob), as.integer(input$participants),
-      input$devices, a_priori$min_quality_percent[1])
+    expl <- 
+      #ifelse(!input$use_scc,
+      #       sprintf(
+      #         "When the prevelance for headphones in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants classified as %s users is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least %.1f percent.",
+      #         as.numeric(input$baserate_hp), a_priori$method[1], a_priori$method_code[1],
+      #         as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
+      #         as.integer(a_priori$C[1]), as.integer(a_priori$samplesize[1]),
+      #         devices, as.numeric(input$min_prob), as.integer(input$participants),
+      #         devices, a_priori$min_quality_percent[1]),
+      #       sprintf(
+      #         "When the switching prevalence in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants who reported use of %s or whose tests indicate the use of %s is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least ",
+      #         as.numeric(input$switch_to_target), a_priori$method[1], a_priori$method_code[1],
+      #         as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
+      #         as.integer(a_priori$C[1]), a_priori$samplesize,
+      #         devices, devices, as.numeric(input$min_prob),
+      #         as.integer(input$participants), devices, a_priori
+      #       )
+      #)
+      a_priori_explanation(screening_strat = ifelse(input$use_scc,
+                                                    "scc",
+                                                    "fwr/far"),
+                           devices = input$devices,
+                           baserate_hp = as.numeric(input$baserate_hp),
+                           switch_to_target = as.numeric(input$switch_to_target),
+                           min_number = as.numeric(input$participants),
+                           min_prob = as.numeric(input$min_prob),
+                           test_method = a_priori)
   }
   if(input$conf_auto == "auto") {
     expl <- paste0("The overall utility describes a utilities-weighted sum of the probabilities ",
