@@ -22,11 +22,10 @@ get_intro_text <- function(){
   div(h4("Welcome to the Headphone and Loudspeaker Test (HALT) Configurator & Calculator"), 
       p("This tool determines an optimal screening test combination for headphones and loudspeakers.",
         "It is to be used a priori (i.e., in advance of data collection).",
-        "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use.",
-        "The option 'SCC' (Split-Convince-Compare) will also be available for configuration in the future."),
+        "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use."),
       p("We also implemented a tool for post-hoc calculations (see Post hoc Sample Size Estimations tab).",
         "With this tool you can estimate the composition of a given sample after a screening procedure was applied."),
-      p("This is Version 1.1 for HALT v0.11.0 and higher"),
+      p("This is Version 1.2 for HALT v0.11.0 and higher"),
       p("Thank you for your interest."),
       p("Kilian Sander, Yves Wycisk"), style = "width:90%;text-align:justify")
 }
