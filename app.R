@@ -369,8 +369,17 @@ explanation_text <- function(input, row) {
                    "among several tests for the application.<br>",
                    "PPV expresses the probability of headphone usage when the screening test is positive. ",
                    "NPV expresses the probability of loudspeaker usage when the screening test is negative.<br>")
-    a_priori <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
+    if (input$use_scc) {
+      a_priori <-
+        tests_scc_utility(baserate_hp = as.numeric(input$baserate_hp),
+                          devices = input$devices,
+                          switch_to_target = as.numeric(input$switch_to_target)) %>%
+        filter(scc_utility == max(scc_utility))
+    } else {
+      a_priori <- tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
       filter(utility == max(utility))
+    }
+    
     multiple_best_tests <- dim(a_priori)[[1]] > 1
     expl <- paste0(
       expl,
