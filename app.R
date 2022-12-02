@@ -22,11 +22,10 @@ get_intro_text <- function(){
   div(h4("Welcome to the Headphone and Loudspeaker Test (HALT) Configurator & Calculator"), 
       p("This tool determines an optimal screening test combination for headphones and loudspeakers.",
         "It is to be used a priori (i.e., in advance of data collection).",
-        "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use.",
-        "The option 'SCC' (Split-Convince-Compare) will also be available for configuration in the future."),
+        "The selected test and other parameters (see Info tab) for setting the HALT can then be saved in a configuration file for later use."),
       p("We also implemented a tool for post-hoc calculations (see Post hoc Sample Size Estimations tab).",
         "With this tool you can estimate the composition of a given sample after a screening procedure was applied."),
-      p("This is Version 1.1 for HALT v0.11.0 and higher"),
+      p("This is Version 1.2 for HALT v0.11.0 and higher"),
       p("Thank you for your interest."),
       p("Kilian Sander, Yves Wycisk"), style = "width:90%;text-align:justify")
 }
@@ -62,9 +61,13 @@ ui <- fluidPage(
                            tags$hr(),
                            h4("Screening"),
                            checkboxInput("screening_parts", tags$b("Use Screening Parts"), value = TRUE),
-                           textInput("baserate_hp", "Base Rate/Prevalence for Headphones:",
-                                     value = round(211.0/1194.0, 2), width = input_width),
                            conditionalPanel(condition = "input.screening_parts == 1",
+                                            checkboxInput("use_scc", tags$b("SCC"), value = FALSE),
+                                            textInput("baserate_hp", "Base Rate/Prevalence for Headphones:",
+                                                      value = round(211.0/1194.0, 2), width = input_width),
+                                            conditionalPanel(condition = "input.use_scc == 1",
+                                                             textInput("switch_to_target", "Switching prevalence:",
+                                                                       value = 0.75)),
                                             selectInput("conf_auto", "Screening configuration based on:",
                                                         c("prevalence and overall utility" = "auto",
                                                           "sample size estimations" = "est",
@@ -74,7 +77,8 @@ ui <- fluidPage(
                                             conditionalPanel(condition = "input.conf_auto == 'manual'",
                                                              selectInput("combination_method",
                                                                          "Test Combination/Evaluation Key:",
-                                                                         1:18, selected = 11),
+                                                                         evaluation_keys() %>% setNames(as.numeric(names(.)), .),
+                                                                         selected = 11),
                                                              selectInput("A_threshold", "Test A Threshold:",1:6, selected = 5),
                                                              selectInput("B_threshold", "Test B Threshold:", 1:6, selected = 5),
                                                              selectInput("C_threshold", "Test C Threshold:", 1:6, selected = 5)),
@@ -107,7 +111,7 @@ ui <- fluidPage(
                                    # explanation
                                    h3("Explanation"),
                                    div(htmlOutput("explanation"),
-                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
+                                       style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px; margin-bottom: 25px;"),
                                    width = 10)
                        )
               ),
@@ -127,7 +131,8 @@ ui <- fluidPage(
                                          "Filter after request" = "far",
                                          "Split-convince-compare" = "scc")),
                            selectInput("post_hoc_test_combi", "Test combination/Evaluation key",
-                                       1:18, selected = 11),
+                                       evaluation_keys() %>% setNames(as.numeric(names(.)), .),
+                                       selected = 11),
                            selectInput("post_hoc_A", "Test A Threshold:",
                                        1:6, selected = 5),
                            selectInput("post_hoc_B", "Test B Threshold:",
@@ -167,11 +172,13 @@ ui <- fluidPage(
                                                         min = .5, max = .99, value = .8, step = .01,
                                                         round = FALSE)),
                            width = 2),
-                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample"),
+                         mainPanel(h4("Probabilistic Statements About the Composition of a Sample",
+                                      style = "margin-left:0px;margin-top:30px"),
                                    div(textOutput("post_hoc_explanation"),
                                        style = "width:50%;background-color:#e6c5cd;border: solid 1px;padding: 10px;  border-radius: 5px;"),
                                    div(tableOutput("post_hoc_table"),
-                                                   style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;")                                   )
+                                                   style = "background-color: #9ad6db;border: solid 1px; padding: 10px;  border-radius: 5px;margin-top:20px;"),
+                                   width = 10)
                        )),
               tabPanel("References",
                        includeMarkdown("inst/references.md"))
@@ -248,45 +255,75 @@ build_config <- function(input, row) {
 selection_table <- function(input) {
   if (input$screening_parts) {
     if (input$conf_auto == "est") {
-      selection <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
-                                      device = input$devices, 
-                                      min_number = as.numeric(input$participants), 
-                                      min_prob =  as.numeric(input$min_prob), 
-                                      tolerance = 10000) %>% 
+      selection <-
+        HALT::a_priori_estimation(screening_strat = ifelse(as.logical(input$use_scc),
+                                                           "scc",
+                                                           "far"),
+                                  baserate_hp = as.numeric(input$baserate_hp),
+                                  switch_to_target = as.numeric(input$switch_to_target),
+                                  devices = input$devices,
+                                  min_number = as.numeric(input$participants),
+                                  min_prob =  as.numeric(input$min_prob),
+                                  tolerance = 10000) %>%
         dplyr::rename(Method = method,
                       `Eval. Key` = method_code,
                       Sensitivity = true_hp_rate,
                       Specificity = true_ls_rate,
-                      PPV = hp_pv,
-                      NPV = ls_pv,
-                      Utility = utility,
+                      PPV = ifelse(as.logical(input$use_scc),
+                                   "scc_hp_pv",
+                                   "hp_pv"),
+                      NPV = ifelse(as.logical(input$use_scc),
+                                   "scc_ls_pv",
+                                   "ls_pv"),
+                      Utility = ifelse(as.logical(input$use_scc),
+                                       "scc_utility",
+                                       "utility"),
                       `Sample Size` = samplesize,
                       `Expect. total participants` = expectation_total_participants,
                       `Min Quality %` = min_quality_percent)
+      #if (as.logical(input$use_scc)) {
+      #  selection <- selection %>% select(-scc_target, -prob_scc_target)
+      #}
     } else {# if(input$conf_auto == "manual" || input$conf_auto == "auto")
-        selection <- HALT::tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
-          dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
-          dplyr::rename(Method = method,
-                        `Eval. Key` = method_code,
-                        Sensitivity = true_hp_rate,
-                        Specificity = true_ls_rate,
-                        PPV = hp_pv,
-                        NPV = ls_pv,
-                        Utility = utility) %>% 
-          dplyr::arrange(desc(Utility))
-        if(input$conf_auto == "manual") {
-          A_threshold <- as.numeric(input$A_threshold)
-          B_threshold <- as.numeric(input$B_threshold)
-          C_threshold <- as.numeric(input$C_threshold)
-          if(input$combination_method %in% c(2,3,6,7)){A_threshold <- 0}
-          if(input$combination_method %in% c(1,3,8,9)){B_threshold <- 0}
-          if(input$combination_method %in% c(1,2,4,5)){C_threshold <- 0}
-          selection <- selection %>%
-            dplyr::filter(`Eval. Key` == as.numeric(input$combination_method),
-                          A == A_threshold,
-                          B == B_threshold,
-                          C == C_threshold)
-        }
+      if (input$use_scc) {
+        selection <-
+          tests_scc_utility(baserate_hp = as.numeric(input$baserate_hp),
+                            devices = input$devices,
+                            switch_to_target = as.numeric(input$switch_to_target)) %>%
+          select(-scc_target,-prob_scc_target)
+      } else {
+        selection <-
+          tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp))
+      }
+      selection <- selection %>%
+        dplyr::select(-c(logic_expr, false_ls_rate, false_hp_rate)) %>% 
+        dplyr::rename(Method = method,
+                      `Eval. Key` = method_code,
+                      Sensitivity = true_hp_rate,
+                      Specificity = true_ls_rate,
+                      PPV = ifelse(input$use_scc,
+                                   "scc_hp_pv",
+                                   "hp_pv"),
+                      NPV = ifelse(input$use_scc,
+                                   "scc_ls_pv",
+                                   "ls_pv"),
+                      Utility = ifelse(input$use_scc,
+                                       "scc_utility",
+                                       "utility")) %>% 
+        dplyr::arrange(desc(Utility))
+      if(input$conf_auto == "manual") {
+        A_threshold <- as.numeric(input$A_threshold)
+        B_threshold <- as.numeric(input$B_threshold)
+        C_threshold <- as.numeric(input$C_threshold)
+        if(input$combination_method %in% c(2,3,6,7)){A_threshold <- 0}
+        if(input$combination_method %in% c(1,3,8,9)){B_threshold <- 0}
+        if(input$combination_method %in% c(1,2,4,5)){C_threshold <- 0}
+        selection <- selection %>%
+          dplyr::filter(`Eval. Key` == as.numeric(input$combination_method),
+                        A == A_threshold,
+                        B == B_threshold,
+                        C == C_threshold)
+      }
     }
   } else {
     selection <- data.frame(X = "Placeholders are used in the config.") %>% 
@@ -296,23 +333,48 @@ selection_table <- function(input) {
 }
 
 explanation_text <- function(input, row) {
+  devices <- ifelse(input$devices == "HP", "headphones", "loudspeakers")
   if(input$conf_auto == "est") {
-    a_priori <- HALT::a_priori_est(baserate_hp = as.numeric(input$baserate_hp), 
-                                   device = input$devices, 
-                                   min_number = as.numeric(input$participants), 
-                                   min_prob =  as.numeric(input$min_prob), 
+    a_priori <- HALT::a_priori_est(baserate_hp = ifelse(input$use_scc,
+                                                        ifelse(input$devices == "HP",
+                                                               as.numeric(input$switch_to_target),
+                                                               1 - as.numeric(input$switch_to_target)),
+                                                        as.numeric(input$baserate_hp)),
+                                   device = input$devices,
+                                   min_number = as.numeric(input$participants),
+                                   min_prob =  as.numeric(input$min_prob),
                                    tolerance = 10000)
     if (length(row) == 0) {
       row <- 1
     }
     a_priori <- a_priori[row,]
-    expl <- sprintf(
-      "When the prevelance for headphones in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants classified as %s users is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least %.1f percent.",
-      as.numeric(input$baserate_hp), a_priori$method[1], a_priori$method_code[1],
-      as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
-      as.integer(a_priori$C[1]), as.integer(a_priori$samplesize[1]),
-      input$devices, as.numeric(input$min_prob), as.integer(input$participants),
-      input$devices, a_priori$min_quality_percent[1])
+    expl <- 
+      #ifelse(!input$use_scc,
+      #       sprintf(
+      #         "When the prevelance for headphones in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants classified as %s users is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least %.1f percent.",
+      #         as.numeric(input$baserate_hp), a_priori$method[1], a_priori$method_code[1],
+      #         as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
+      #         as.integer(a_priori$C[1]), as.integer(a_priori$samplesize[1]),
+      #         devices, as.numeric(input$min_prob), as.integer(input$participants),
+      #         devices, a_priori$min_quality_percent[1]),
+      #       sprintf(
+      #         "When the switching prevalence in your target sample is assumed to be %.4f and the screening method '%s' (code %i) with thresholds of %i, %i, and %i correct responses for tests A, B, and C is used a sample of %i participants who reported use of %s or whose tests indicate the use of %s is required to have a probability of at least %.2f that %i participants actually used %s. The percentage of correct identified target playback devices ('quality') of such a sample would then be at least ",
+      #         as.numeric(input$switch_to_target), a_priori$method[1], a_priori$method_code[1],
+      #         as.integer(a_priori$A[1]), as.integer(a_priori$B[1]),
+      #         as.integer(a_priori$C[1]), a_priori$samplesize,
+      #         devices, devices, as.numeric(input$min_prob),
+      #         as.integer(input$participants), devices, a_priori
+      #       )
+      #)
+      a_priori_explanation(screening_strat = ifelse(input$use_scc,
+                                                    "scc",
+                                                    "fwr/far"),
+                           devices = input$devices,
+                           baserate_hp = as.numeric(input$baserate_hp),
+                           switch_to_target = as.numeric(input$switch_to_target),
+                           min_number = as.numeric(input$participants),
+                           min_prob = as.numeric(input$min_prob),
+                           test_method = a_priori)
   }
   if(input$conf_auto == "auto") {
     expl <- paste0("The overall utility describes a utilities-weighted sum of the probabilities ",
@@ -321,7 +383,36 @@ explanation_text <- function(input, row) {
                    "for the given prevalence. The 'best' test (combination) is the one with the highest overall utility ",
                    "among several tests for the application.<br>",
                    "PPV expresses the probability of headphone usage when the screening test is positive. ",
-                   "NPV expresses the probability of loudspeaker usage when the screening test is negative.")
+                   "NPV expresses the probability of loudspeaker usage when the screening test is negative.<br>")
+    if (input$use_scc) {
+      a_priori <-
+        tests_scc_utility(baserate_hp = as.numeric(input$baserate_hp),
+                          devices = input$devices,
+                          switch_to_target = as.numeric(input$switch_to_target)) %>%
+        filter(scc_utility == max(scc_utility))
+    } else {
+      a_priori <- tests_pv_utility(baserate_hp = as.numeric(input$baserate_hp)) %>%
+      filter(utility == max(utility))
+    }
+    
+    multiple_best_tests <- dim(a_priori)[[1]] > 1
+    expl <- paste0(
+      expl,
+      paste0(sprintf("When the prevalence for headphones is %.4f ", as.numeric(input$baserate_hp)),
+             ifelse(input$use_scc,
+                    sprintf("and the switching prevalence is %.4f ",
+                            as.numeric(input$switch_to_target)),
+                    ""),
+             ifelse(multiple_best_tests,
+                    "there are multiple 'best' test combinations ",
+                    sprintf("the test (combination) '%s' with thresholds %i, %i, and %i for Test A, Test B, and Test C, respectively, is the 'best' test (combination) ",
+                            evaluation_keys()[input$combination_method], a_priori$A[[1]],
+                            a_priori$B[[1]], a_priori$C[[1]])),
+             sprintf("within %s.",
+                     ifelse(input$use_scc,
+                            "SCC",
+                            "FWR/FAR")))
+    )
   }
   if(input$conf_auto == "manual") {
     expl <- paste0("You specified a test combination and the threshold of each individual test. ",
@@ -431,7 +522,7 @@ post_hoc_table <- function(input) {
                     target_tested = as.integer(input$post_hoc_target_tested),
                     baserate_hp = as.numeric(input$post_hoc_baserate),
                     switch_to_target = as.numeric(input$post_hoc_switch_rate),
-                    min_number = min_number,
+                    min_number = as.integer(min_number),
                     min_prob = min_prob) %>% 
     rename(`Screening Strategy` = screening_strat,
            `Combination Method` = combination_method,
